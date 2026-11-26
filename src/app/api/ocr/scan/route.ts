@@ -18,6 +18,7 @@ import {
   registerScannedDocument,
   type DocumentBlockRow,
   type DocumentRow,
+  type DocumentTableRow,
 } from "@/lib/data/workspace";
 
 export const maxDuration = 60;
@@ -370,12 +371,30 @@ export async function POST(req: Request) {
       updated_at: now,
     }));
 
+    // Extract tables for AccessibleReaderStudio and persistence
+    const docTables: DocumentTableRow[] = [];
+    enrichedBlocks.forEach((b, idx) => {
+      if (b.blockType === "table" && (b.tableHeaders || b.tableRows)) {
+        docTables.push({
+          id: `tbl-${docId}-${idx + 1}`,
+          document_id: docId,
+          block_id: `block-${docId}-${idx + 1}`,
+          caption: b.contentText || "Tabel Akademik",
+          headers: b.tableHeaders ?? [],
+          rows: b.tableRows ?? [],
+          column_count: b.tableHeaders?.length ?? b.tableRows?.[0]?.length ?? 0,
+          row_count: b.tableRows?.length ?? 0,
+          created_at: now,
+        });
+      }
+    });
+
     // Register into memory store so AccessibleReaderStudio can open it immediately
     registerScannedDocument({
       document: documentRecord,
       course,
       blocks: docBlocks,
-      tables: [],
+      tables: docTables,
       equations: [],
       figures: [],
       signedPdfUrl: imageBase64.startsWith("data:application/pdf") ? imageBase64 : null,

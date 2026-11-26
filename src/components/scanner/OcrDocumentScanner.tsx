@@ -43,6 +43,7 @@ import {
   MathEquationView,
 } from "@/components/document/FormattedMathText";
 import { narrateMixedText, narrateTableBlock } from "@/features/math-ocr/math-narration";
+import { parseTableData, narrateTable } from "@/lib/accessibility/table-narration";
 import { ScannedMaterialAiChat } from "@/components/scanner/ScannedMaterialAiChat";
 import { useTranslation } from "@/lib/i18n/use-translation";
 import type { CourseRow } from "@/lib/data/workspace";
@@ -77,6 +78,7 @@ export function OcrDocumentScanner({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const initialCourse =
     defaultCourseId && courses.some((c) => c.id === defaultCourseId)
@@ -425,40 +427,79 @@ export function OcrDocumentScanner({
       return;
     }
 
-    window.speechSynthesis.cancel();
     if (isPlayingAudio && currentlyPlayingIndex === blockIdx) {
+      window.speechSynthesis.cancel();
+      currentUtteranceRef.current = null;
       setIsPlayingAudio(false);
       setCurrentlyPlayingIndex(null);
       return;
     }
 
+    window.speechSynthesis.cancel();
+
     const naturalSpokenText = narrateMixedText(text, language);
+    if (!naturalSpokenText.trim()) {
+      announce("Tidak ada konten suara untuk dibacakan.", "polite");
+      return;
+    }
+
     const utterance = new SpeechSynthesisUtterance(naturalSpokenText);
+    currentUtteranceRef.current = utterance;
     utterance.lang = language === "id" ? "id-ID" : "en-US";
     utterance.rate = 1.0;
+
+    try {
+      const voices = window.speechSynthesis.getVoices?.() || [];
+      const targetPrefix = language === "id" ? "id" : "en";
+      const matched = voices.find((v) =>
+        v.lang.toLowerCase().startsWith(targetPrefix)
+      );
+      if (matched) utterance.voice = matched;
+    } catch {
+      // fallback to system default voice
+    }
 
     utterance.onstart = () => {
       setIsPlayingAudio(true);
       if (typeof blockIdx === "number") setCurrentlyPlayingIndex(blockIdx);
     };
     utterance.onend = () => {
+      currentUtteranceRef.current = null;
       setIsPlayingAudio(false);
       setCurrentlyPlayingIndex(null);
     };
-    utterance.onerror = () => {
+    utterance.onerror = (e) => {
+      console.warn("[OcrDocumentScanner] Speech synthesis error:", e);
+      currentUtteranceRef.current = null;
       setIsPlayingAudio(false);
       setCurrentlyPlayingIndex(null);
     };
 
-    window.speechSynthesis.speak(utterance);
+    // Chrome/Chromium workaround: small timeout ensures previous cancel() completes
+    setTimeout(() => {
+      try {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        console.error("[OcrDocumentScanner] Failed to speak utterance:", err);
+      }
+    }, 50);
   };
 
   const speakAllDocument = () => {
     if (!scanResult || scanResult.blocks.length === 0) return;
     const fullText = scanResult.blocks
       .map((b) => {
-        if (b.blockType === "table" && (b.tableHeaders || b.tableRows)) {
-          return b.spokenText || narrateTableBlock(b.contentText, b.tableHeaders, b.tableRows, language);
+        if (b.blockType === "table") {
+          if (b.tableHeaders || b.tableRows) {
+            return narrateTableBlock(b.contentText, b.tableHeaders, b.tableRows, language);
+          }
+          const parsed = parseTableData(null, null, b.contentText);
+          if (parsed.headers.length > 0 || parsed.rows.length > 0) {
+            return narrateTable(parsed, language);
+          }
         }
         return narrateMixedText(b.spokenText || b.contentText, language);
       })
@@ -470,6 +511,7 @@ export function OcrDocumentScanner({
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
+    currentUtteranceRef.current = null;
     setIsPlayingAudio(false);
     setCurrentlyPlayingIndex(null);
   };
@@ -1006,16 +1048,26 @@ export function OcrDocumentScanner({
                       size="sm"
                       variant="ghost"
                       onClick={() => {
-                        let spoken = block.spokenText;
-                        if (!spoken && block.blockType === "table" && (block.tableHeaders || block.tableRows)) {
-                          spoken = narrateTableBlock(
-                            block.contentText,
-                            block.tableHeaders,
-                            block.tableRows,
-                            language
-                          );
+                        let spoken = "";
+                        if (block.blockType === "table") {
+                          if (block.tableHeaders || block.tableRows) {
+                            spoken = narrateTableBlock(
+                              block.contentText,
+                              block.tableHeaders,
+                              block.tableRows,
+                              language
+                            );
+                          } else {
+                            const parsed = parseTableData(null, null, block.contentText);
+                            if (parsed.headers.length > 0 || parsed.rows.length > 0) {
+                              spoken = narrateTable(parsed, language);
+                            }
+                          }
                         }
-                        speakText(spoken || block.contentText, idx);
+                        if (!spoken) {
+                          spoken = block.spokenText || block.contentText;
+                        }
+                        speakText(spoken, idx);
                       }}
                       className="h-9 rounded-full px-3 text-xs"
                     >

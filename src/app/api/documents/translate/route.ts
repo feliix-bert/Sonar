@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getChatModel } from "@/lib/ai/provider";
 import { isAiConfigured } from "@/lib/env";
 import { checkRateLimit } from "@/lib/ai/rate-limit";
-import { narrateLatexEquation, narrateMixedText } from "@/features/math-ocr/math-narration";
+import { narrateLatexEquation, narrateMixedText, narrateTableBlock } from "@/features/math-ocr/math-narration";
 import type { ExtractedBlockOutput } from "@/features/ocr/ocr-provider";
 
 export const maxDuration = 60;
@@ -139,6 +139,16 @@ export async function POST(req: Request) {
       if (b.blockType === "equation" && latex) {
         const narr = narrateLatexEquation(latex);
         spokenText = targetLanguage === "en" ? narr.narrationEn : narr.narrationId;
+      } else if (
+        b.blockType === "table" &&
+        (b.tableHeaders || b.tableRows || orig.tableHeaders || orig.tableRows)
+      ) {
+        spokenText = narrateTableBlock(
+          b.contentText,
+          b.tableHeaders ?? orig.tableHeaders,
+          b.tableRows ?? orig.tableRows,
+          targetLanguage
+        );
       } else {
         spokenText = narrateMixedText(b.contentText, targetLanguage);
       }

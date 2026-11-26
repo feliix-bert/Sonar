@@ -289,9 +289,23 @@ export function AccessibleReaderStudio({
           if (block.block_type === "equation" && eq) {
             spoken = language === "id" ? eq.narration_id : eq.narration_en;
           } else if (block.block_type === "table") {
+            const meta = (typeof block.metadata === "object" && block.metadata !== null) ? (block.metadata as Record<string, unknown>) : undefined;
+            const metaHeaders = Array.isArray(meta?.tableHeaders) ? (meta.tableHeaders as string[]) : undefined;
+            const metaRows = Array.isArray(meta?.tableRows) ? (meta.tableRows as string[][]) : undefined;
+            const effectiveTbl = tbl ?? (metaHeaders || metaRows ? {
+              id: `tbl-${block.id}`,
+              document_id: block.document_id,
+              block_id: block.id,
+              caption: block.content_text,
+              headers: metaHeaders ?? [],
+              rows: metaRows ?? [],
+              column_count: metaHeaders?.length ?? metaRows?.[0]?.length ?? 0,
+              row_count: metaRows?.length ?? 0,
+              created_at: block.created_at,
+            } : undefined);
             const tableData = parseTableData(
               block.content_html,
-              tbl,
+              effectiveTbl,
               block.content_text
             );
             spoken = narrateTable(tableData, language);
@@ -1042,6 +1056,20 @@ export function AccessibleReaderStudio({
                   const eqData = equationsByBlock.get(block.id);
                   const tblData = tablesByBlock.get(block.id);
                   const figData = figuresByBlock.get(block.id);
+                  const meta = (typeof block.metadata === "object" && block.metadata !== null) ? (block.metadata as Record<string, unknown>) : undefined;
+                  const metaHeaders = Array.isArray(meta?.tableHeaders) ? (meta.tableHeaders as string[]) : undefined;
+                  const metaRows = Array.isArray(meta?.tableRows) ? (meta.tableRows as string[][]) : undefined;
+                  const resolvedTbl = tblData ?? (metaHeaders || metaRows ? {
+                    id: `tbl-${block.id}`,
+                    document_id: block.document_id,
+                    block_id: block.id,
+                    caption: block.content_text,
+                    headers: metaHeaders ?? [],
+                    rows: metaRows ?? [],
+                    column_count: metaHeaders?.length ?? metaRows?.[0]?.length ?? 0,
+                    row_count: metaRows?.length ?? 0,
+                    created_at: block.created_at,
+                  } : undefined);
 
                   return (
                     <section
@@ -1113,7 +1141,7 @@ export function AccessibleReaderStudio({
                           >
                             <StructuredTable
                               html={block.content_html}
-                              table={tblData}
+                              table={resolvedTbl}
                               fallbackText={block.content_text}
                             />
                           </div>
