@@ -42,6 +42,62 @@ export function autoWrapUnescapedMath(text: string): string {
     }
   );
 
+  // 2b. Set theory operations and set equations:
+  // e.g. A \cup B, A \cap B, \bar{A} = S \setminus A, (A \setminus B) \cup (B \setminus A),
+  // A \setminus B = A \cap \bar{B}, P(A \cup B) = P(A) + P(B) - P(A \cap B), A \setminus (B \cup C)
+  // Placed before parentheses-wrapping (Rule 3) so expressions like (A \setminus B) \cup (B \setminus A) stay unified.
+  const singleSetTerm =
+    '(?:\\\\[a-zA-Z]+\\{[^{}\\n]+\\}|\\\\[a-zA-Z]+|[A-Za-z0-9](?:\\^[a-zA-Z0-9c]|\\\'|_[0-9a-zA-Z]+)?)';
+  const parenSetTerm =
+    '\\([a-zA-Z0-9_\\\\\\s\\^\\\'\\{\\}\\+\\-\\*\\/\\(\\)]+\\)';
+  const setOperand = '(?:[A-Za-z0-9]?' + parenSetTerm + '|' + singleSetTerm + ')';
+  const setBinaryOp =
+    '\\\\(?:cup|cap|setminus|oplus|ominus|sqcup|sqcap|uplus)';
+
+  const setChain =
+    '(?:' +
+    setOperand +
+    '\\s*' +
+    setBinaryOp +
+    '\\s*' +
+    setOperand +
+    '(?:\\s*' +
+    setBinaryOp +
+    '\\s*' +
+    setOperand +
+    ')*)';
+
+  // 2b.i. Equations involving set operations:
+  // e.g. \bar{A} = S \setminus A, A \setminus B = A \cap \bar{B}, A \cap B = \emptyset, P(A \cup B) = P(A) + P(B) - P(A \cap B)
+  const setEquationRegex = new RegExp(
+    '(?<![a-zA-Z0-9_\\\\])(?:' +
+      setChain +
+      '|' +
+      setOperand +
+      ')\\s*=\\s*(?:' +
+      setChain +
+      '|' +
+      setOperand +
+      ')',
+    'g'
+  );
+  workingText = workingText.replace(setEquationRegex, (m) => {
+    if (
+      /\\(?:cup|cap|setminus|emptyset|varnothing|subset|subseteq|supset|supseteq|bar\{[A-Za-z]\})/.test(
+        m
+      )
+    ) {
+      return protect(`\\(${m.trim()}\\)`);
+    }
+    return m;
+  });
+
+  // 2b.ii. Chained or binary set operations: e.g. A \cup B, A \cap B, (A \setminus B) \cup (B \setminus A)
+  const setOpRegex = new RegExp('(?<![a-zA-Z0-9_\\\\])' + setChain, 'g');
+  workingText = workingText.replace(setOpRegex, (m) =>
+    protect(`\\(${m.trim()}\\)`)
+  );
+
   // 3. Parentheses containing LaTeX expressions: e.g. (\mathbb{R}^3), (\bar{u} - \bar{v})
   workingText = workingText.replace(
     /\(([^\(\)\n]*?\\[a-zA-Z]+[^\(\)\n]*?)\)/g,
@@ -72,9 +128,9 @@ export function autoWrapUnescapedMath(text: string): string {
     (m) => protect(`\\(${m}\\)`)
   );
 
-  // 7. Vector/math accents and Blackboard/Mathbb: e.g. \bar{a}, \bar{b}, \bar{u}, \bar{v}, \mathbb{R}^3, k\bar{a}, 2\bar{a}
+  // 7. Vector/math accents and Blackboard/Mathbb: e.g. \bar{a}, \bar{b}, \bar{u}, \bar{v}, \overline{A}, \mathbb{R}^3, k\bar{a}, 2\bar{a}
   workingText = workingText.replace(
-    /(?<![a-zA-Z0-9_\\])(?:(?:-?\d+(?:\.\d+)?|\b[a-zA-Z])\s*)?\\(?:bar|vec|hat|tilde|dot|ddot|mathbf|mathcal|mathbb|mathrm)\{[^{}\n]+\}(?:\^[0-9a-zA-Z]+|\^\{[^}]+\}|_[0-9a-zA-Z]+|_{[^}]+})?/g,
+    /(?<![a-zA-Z0-9_\\])(?:(?:-?\d+(?:\.\d+)?|\b[a-zA-Z])\s*)?\\(?:bar|vec|hat|tilde|dot|ddot|mathbf|mathcal|mathbb|mathrm|overline)\{[^{}\n]+\}(?:\^[0-9a-zA-Z]+|\^\{[^}]+\}|_[0-9a-zA-Z]+|_{[^}]+})?/g,
     (m) => protect(`\\(${m}\\)`)
   );
 
@@ -96,15 +152,16 @@ export function autoWrapUnescapedMath(text: string): string {
     (_m, varName, sub) => protect(`\\(${varName}_${sub}\\)`)
   );
 
-  // 11. Standalone Greek / LaTeX symbols with text or exponents: e.g. \varepsilon \text{ kaki}, \varepsilon^2
+  // 11. Standalone Greek / LaTeX / Math / Set symbols with text or exponents:
+  // e.g. \emptyset, \varnothing, \infty, \partial, \nabla, \forall, \exists, \varepsilon \text{ kaki}, \varepsilon^2
   workingText = workingText.replace(
-    /\\(?:varepsilon|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Delta|Gamma|Theta|Lambda|Xi|Pi|Sigma|Phi|Psi|Omega)(?:\^[0-9a-zA-Z]+|\^\{[^}]+\}|_[0-9a-zA-Z]+|_{[^}]+})?(?:\s*\\text\{[^}]+\})?/g,
-    (m) => protect(`\\(${m}\\)`)
+    /\\(?:emptyset|varnothing|infty|partial|nabla|forall|exists|nexists|neg|aleph|hbar|varepsilon|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Delta|Gamma|Theta|Lambda|Xi|Pi|Sigma|Phi|Psi|Omega)(?:\^[0-9a-zA-Z]+|\^\{[^}]+\}|_[0-9a-zA-Z]+|_{[^}]+})?(?:\s*\\text\{[^}]+\})?/g,
+    (m) => protect(`\\(${m.trim()}\\)`)
   );
 
-  // 12. Inline inequalities and comparisons: e.g. L - 3 \le x \le L, 0 \le y \le W, x \ge 0
+  // 12. Inline inequalities, subsets, and comparisons: e.g. L - 3 \le x \le L, 0 \le y \le W, x \ge 0, A \subset B
   workingText = workingText.replace(
-    /(?<![a-zA-Z0-9_\\])(?:[a-zA-Z0-9_\(\)\-\+\*\/]+\s*)?\\(?:le|ge|ne|approx|sim|equiv|subset|subseteq|in|notin)\s*(?:[a-zA-Z0-9_\(\)\-\+\*\/]+(?:\s*\\(?:le|ge|ne|approx|sim|equiv)\s*[a-zA-Z0-9_\(\)\-\+\*\/]+)?)/g,
+    /(?<![a-zA-Z0-9_\\])(?:[a-zA-Z0-9_\(\)\-\+\*\/]+\s*)?\\(?:le|ge|ne|approx|sim|equiv|subset|subseteq|supset|supseteq|subsetneq|supsetneq|in|notin)\s*(?:[a-zA-Z0-9_\(\)\-\+\*\/]+(?:\s*\\(?:le|ge|ne|approx|sim|equiv|subset|subseteq|supset|supseteq|in|notin)\s*[a-zA-Z0-9_\(\)\-\+\*\/]+)?)/g,
     (m) => {
       if (!m.includes("___MATH_PLACEHOLDER_")) {
         return protect(`\\(${m}\\)`);

@@ -179,4 +179,62 @@ describe("SONAR Deterministic Math Narration & MathML Engine", () => {
     expect(res.narrationId).not.toContain("Peringatan:");
     expect(res.narrationId).toContain("panjang vektor u dikali silang vektor v");
   });
+
+  it("auto-wraps set theory operations, equations, complements, and empty set symbols accurately", () => {
+    expect(autoWrapUnescapedMath("A \\cup B")).toBe("\\(A \\cup B\\)");
+    expect(autoWrapUnescapedMath("A \\cap B")).toBe("\\(A \\cap B\\)");
+    expect(autoWrapUnescapedMath("\\bar{A} = S \\setminus A")).toBe(
+      "\\(\\bar{A} = S \\setminus A\\)"
+    );
+    expect(autoWrapUnescapedMath("A \\subset B")).toBe("\\(A \\subset B\\)");
+    expect(
+      autoWrapUnescapedMath("(A \\setminus B) \\cup (B \\setminus A)")
+    ).toBe("\\((A \\setminus B) \\cup (B \\setminus A)\\)");
+    expect(autoWrapUnescapedMath("\\emptyset")).toBe("\\(\\emptyset\\)");
+    expect(autoWrapUnescapedMath("\\varnothing")).toBe("\\(\\varnothing\\)");
+    expect(autoWrapUnescapedMath("A \\setminus B = A \\cap \\bar{B}")).toBe(
+      "\\(A \\setminus B = A \\cap \\bar{B}\\)"
+    );
+    expect(
+      autoWrapUnescapedMath("P(A \\cup B) = P(A) + P(B) - P(A \\cap B)")
+    ).toBe("\\(P(A \\cup B) = P(A) + P(B) - P(A \\cap B)\\)");
+  });
+
+  it("narrates set operations, complement of events, and empty sets naturally in speech", () => {
+    const complementRes = narrateLatexEquation("\\bar{A} = S \\setminus A");
+    expect(complementRes.supported).toBe(true);
+    expect(complementRes.narrationId.toLowerCase()).toContain("komplemen a");
+    expect(complementRes.narrationId.toLowerCase()).toContain("selisih himpunan a");
+
+    const symDiffRes = narrateLatexEquation("(A \\setminus B) \\cup (B \\setminus A)");
+    expect(symDiffRes.supported).toBe(true);
+    expect(symDiffRes.narrationId.toLowerCase()).toContain("selisih himpunan");
+    expect(symDiffRes.narrationId.toLowerCase()).toContain("gabungan");
+
+    const emptySetRes = narrateLatexEquation("\\emptyset");
+    expect(emptySetRes.supported).toBe(true);
+    expect(emptySetRes.narrationId.toLowerCase()).toContain("himpunan kosong");
+
+    const tableNarration = narrateTableBlock(
+      "Tabel Event",
+      ["Event"],
+      [
+        ["A \\cup B"],
+        ["A \\cap B"],
+        ["\\bar{A} = S \\setminus A"],
+        ["A \\subset B"],
+        ["(A \\setminus B) \\cup (B \\setminus A)"],
+        ["S"],
+        ["\\emptyset"],
+      ],
+      "id"
+    );
+
+    expect(tableNarration).toContain("Tabel: Tabel Event");
+    expect(tableNarration.toLowerCase()).toContain("gabungan");
+    expect(tableNarration.toLowerCase()).toContain("irisan");
+    expect(tableNarration.toLowerCase()).toContain("komplemen a");
+    expect(tableNarration.toLowerCase()).toContain("selisih himpunan");
+    expect(tableNarration.toLowerCase()).toContain("himpunan kosong");
+  });
 });

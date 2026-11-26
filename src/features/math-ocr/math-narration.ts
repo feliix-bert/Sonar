@@ -155,18 +155,43 @@ function translateSimpleTokens(
     .replace(/\\circ\b/g, lang === "id" ? " derajat " : " degrees ")
     .replace(/\\infty\b/g, lang === "id" ? " tak hingga " : " infinity ")
     .replace(/\\%/g, lang === "id" ? " persen " : " percent ")
-    // Vector & Norm notation
-    .replace(/\\(?:bar|vec|mathbf)\{([^{}]+)\}/g, lang === "id" ? " vektor $1 " : " vector $1 ")
-    .replace(/\\?\|([^|]+)\\?\|/g, (_m, inner) =>
-      lang === "id" ? ` panjang vektor ${inner} ` : ` magnitude of ${inner} `
-    )
-    .replace(/\\mathbb\{R\}\s*\^?\s*\{?([0-9a-zA-Z]*)\}?/g, (_m, dim) =>
-      dim ? (lang === "id" ? ` ruang R ${dim} ` : ` R ${dim} space `) : (lang === "id" ? " ruang bilangan riil " : " real numbers ")
-    )
-    .replace(/\\mathbb\{([A-Za-z])\}/g, "$1")
-    // Unwrap formatting and text wrappers
-    .replace(/\\(?:text|mathrm|mathbf|mathit|textbf|operatorname)\s*\{([^}]+)\}/g, "$1")
-    .replace(/\\(?:quad|qquad|hspace|vspace)\*?(?:\{[^}]*\})?/g, " ");
+    // Vector, Norm & Set complement notation
+    // In set context (expressions containing set operators/symbols like \setminus, \cup, \cap, \subset, \emptyset)
+    // or probability notation P(\bar{A}), \bar{A} represents the set complement ("komplemen A").
+    const isSetContext =
+      /\\(?:cup|cap|setminus|subset|subseteq|supset|supseteq|emptyset|varnothing)\b|[A-Za-z0-9\)]\s*=\s*[A-Za-z0-9\(]*\s*\\(?:setminus|cup|cap)\b|P\s*\(/.test(
+        expr
+      );
+    if (isSetContext) {
+      out = out.replace(
+        /\\(?:bar|overline)\{([^{}]+)\}/g,
+        lang === "id" ? " komplemen $1 " : " complement of $1 "
+      );
+    } else {
+      out = out.replace(
+        /\\(?:bar|vec|mathbf)\{([^{}]+)\}/g,
+        lang === "id" ? " vektor $1 " : " vector $1 "
+      );
+    }
+    out = out
+      .replace(
+        /\\overline\{([^{}]+)\}/g,
+        lang === "id" ? " komplemen $1 " : " complement of $1 "
+      )
+      .replace(
+        /([A-Za-z0-9\)])\s*\^\s*\{?c\}?/g,
+        lang === "id" ? " komplemen $1 " : " complement of $1 "
+      )
+      .replace(/\\?\|([^|]+)\\?\|/g, (_m, inner) =>
+        lang === "id" ? ` panjang vektor ${inner} ` : ` magnitude of ${inner} `
+      )
+      .replace(/\\mathbb\{R\}\s*\^?\s*\{?([0-9a-zA-Z]*)\}?/g, (_m, dim) =>
+        dim ? (lang === "id" ? ` ruang R ${dim} ` : ` R ${dim} space `) : (lang === "id" ? " ruang bilangan riil " : " real numbers ")
+      )
+      .replace(/\\mathbb\{([A-Za-z])\}/g, "$1")
+      // Unwrap formatting and text wrappers
+      .replace(/\\(?:text|mathrm|mathbf|mathit|textbf|operatorname)\s*\{([^}]+)\}/g, "$1")
+      .replace(/\\(?:quad|qquad|hspace|vspace)\*?(?:\{[^}]*\})?/g, " ");
 
   for (const [macro, labels] of Object.entries(FUNCTION_MAP)) {
     out = out.replaceAll(macro, ` ${labels[lang]} `);
@@ -536,6 +561,7 @@ export function narrateLatexEquation(latex: string): EquationNarrationResult {
     "\\leftarrow",
     "\\vec",
     "\\bar",
+    "\\overline",
     "\\hat",
     "\\tilde",
     "\\dot",
@@ -560,6 +586,10 @@ export function narrateLatexEquation(latex: string): EquationNarrationResult {
     "\\qquad",
     "\\hspace",
     "\\vspace",
+    "\\subsetneq",
+    "\\supsetneq",
+    "\\oplus",
+    "\\otimes",
     ...Object.keys(GREEK_MAP),
     ...Object.keys(FUNCTION_MAP),
   ]);
@@ -639,8 +669,11 @@ export function narrateMixedText(
   result = result
     .replace(/\\cap\b|\\bigcap\b/g, lang === "id" ? " irisan " : " intersection ")
     .replace(/\\cup\b|\\bigcup\b/g, lang === "id" ? " gabungan " : " union ")
+    .replace(/\\setminus\b/g, lang === "id" ? " selisih himpunan " : " set minus ")
     .replace(/\\subset\b/g, lang === "id" ? " himpunan bagian dari " : " subset of ")
     .replace(/\\subseteq\b/g, lang === "id" ? " bagian atau sama dengan " : " subset or equal to ")
+    .replace(/\\supset\b/g, lang === "id" ? " himpunan superset dari " : " superset of ")
+    .replace(/\\supseteq\b/g, lang === "id" ? " superset atau sama dengan " : " superset or equal to ")
     .replace(/\\in\b/g, lang === "id" ? " anggota dari " : " in ")
     .replace(/\\notin\b/g, lang === "id" ? " bukan anggota dari " : " not in ")
     .replace(/\\emptyset\b|\\varnothing\b/g, lang === "id" ? " himpunan kosong " : " empty set ")
