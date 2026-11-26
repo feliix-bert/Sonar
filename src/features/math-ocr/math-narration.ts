@@ -19,11 +19,6 @@ export interface EquationNode {
 }
 
 const UNSUPPORTED_MACROS = [
-  "\\begin{matrix}",
-  "\\begin{pmatrix}",
-  "\\begin{bmatrix}",
-  "\\begin{cases}",
-  "\\begin{aligned}",
   "\\oint",
   "\\iint",
   "\\iiint",
@@ -91,6 +86,82 @@ function readBracedGroup(
     }
   }
   return { content: src.slice(begin), nextIdx: src.length };
+}
+
+const SUPPORTED_ENVIRONMENTS = new Set([
+  "matrix",
+  "pmatrix",
+  "bmatrix",
+  "Bmatrix",
+  "vmatrix",
+  "Vmatrix",
+  "array",
+  "cases",
+  "aligned",
+  "align",
+  "gather",
+]);
+
+function readEnvironment(
+  src: string,
+  startIdx: number
+): {
+  envName: string;
+  cleanEnv: string;
+  body: string;
+  nextIdx: number;
+} {
+  const envGroup = readBracedGroup(src, startIdx + 6);
+  const envName = envGroup.content.trim();
+  const cleanEnv = envName.replace(/\*$/, "");
+
+  let bodyStart = envGroup.nextIdx;
+  while (bodyStart < src.length && src[bodyStart] === " ") bodyStart++;
+  if (cleanEnv === "array" && src[bodyStart] === "{") {
+    const colSpec = readBracedGroup(src, bodyStart);
+    bodyStart = colSpec.nextIdx;
+  }
+
+  const escapedEnv = envName.replace(/[*+?^${}()|[\]\\]/g, "\\$&");
+  const openRegex = new RegExp(`^\\\\begin\\s*\\{${escapedEnv}\\}`);
+  const closeRegex = new RegExp(`^\\\\end\\s*\\{${escapedEnv}\\}`);
+
+  let depth = 1;
+  let searchIdx = bodyStart;
+  let bodyEnd = -1;
+  let closeLen = 0;
+
+  while (searchIdx < src.length) {
+    const slice = src.slice(searchIdx);
+    const openMatch = slice.match(openRegex);
+    if (openMatch) {
+      depth++;
+      searchIdx += openMatch[0].length;
+      continue;
+    }
+    const closeMatch = slice.match(closeRegex);
+    if (closeMatch) {
+      depth--;
+      if (depth === 0) {
+        bodyEnd = searchIdx;
+        closeLen = closeMatch[0].length;
+        break;
+      }
+      searchIdx += closeMatch[0].length;
+      continue;
+    }
+    searchIdx++;
+  }
+
+  let nextIdx = src.length;
+  if (bodyEnd !== -1) {
+    nextIdx = bodyEnd + closeLen;
+  } else {
+    bodyEnd = src.length;
+  }
+
+  const body = src.slice(bodyStart, bodyEnd).trim();
+  return { envName, cleanEnv, body, nextIdx };
 }
 
 function translateSimpleTokens(
@@ -201,18 +272,18 @@ function translateSimpleTokens(
   }
 
   // Handle superscripts and subscripts iteratively
-  out = out.replace(/\^\{([^}]+)\}|\^([A-Za-z0-9])/g, (_m, braced, single) => {
+  out = out.replace(/\^\{([^}]+)\}|\^(\d+|[A-Za-z]+)/g, (_m, braced, single) => {
     const exp = (braced ?? single ?? "").trim();
-    if (exp === "2") return lang === "id" ? " kuadrat" : " squared";
-    if (exp === "3") return lang === "id" ? " pangkat tiga" : " cubed";
+    if (exp === "2") return lang === "id" ? " kuadrat " : " squared ";
+    if (exp === "3") return lang === "id" ? " pangkat tiga " : " cubed ";
     const translatedExp = translateExpression(exp, lang);
-    return lang === "id" ? ` pangkat ${translatedExp}` : ` to the power of ${translatedExp}`;
+    return lang === "id" ? ` pangkat ${translatedExp} ` : ` to the power of ${translatedExp} `;
   });
 
-  out = out.replace(/_\{([^}]+)\}|_([A-Za-z0-9])/g, (_m, braced, single) => {
+  out = out.replace(/_\{([^}]+)\}|_(\d+|[A-Za-z]+)/g, (_m, braced, single) => {
     const sub = (braced ?? single ?? "").trim();
     const translatedSub = translateExpression(sub, lang);
-    return lang === "id" ? ` indeks ${translatedSub}` : ` sub ${translatedSub}`;
+    return lang === "id" ? ` indeks ${translatedSub} ` : ` sub ${translatedSub} `;
   });
 
   // Handle differentials like dx, dt
@@ -222,6 +293,7 @@ function translateSimpleTokens(
 
   // Spoken numbers / operators
   out = out
+    .replace(/&/g, " ")
     .replace(/=/g, lang === "id" ? " sama dengan " : " equals ")
     .replace(/\+/g, lang === "id" ? " tambah " : " plus ")
     .replace(/(^|\s)-(\s|[A-Za-z0-9])/g, (_m, a, b) =>
@@ -271,6 +343,133 @@ function translateExpression(
   };
 
   while (i < src.length) {
+    if (src.startsWith("\\begin", i)) {
+      flushBuffer();
+      const { envName, cleanEnv, body, nextIdx } = readEnvironment(src, i);
+
+      const matrixEnvs = new Set([
+        "matrix",
+        "pmatrix",
+        "bmatrix",
+        "Bmatrix",
+        "vmatrix",
+        "Vmatrix",
+        "array",
+      ]);
+
+      if (matrixEnvs.has(cleanEnv)) {
+        const rawRows = body
+          .split(/\\\\(?:\s*\[[^\]]*\])?|\\cr/)
+          .map((r) => r.replace(/\\hline|\\vline/g, " ").trim())
+          .filter((r) => r.length > 0);
+
+        const matrix = rawRows.map((r) =>
+          r.split("&").map((cell) => cell.trim())
+        );
+        const rowCount = matrix.length;
+        const colCount =
+          matrix.length > 0 ? Math.max(...matrix.map((r) => r.length)) : 0;
+
+        let typeNameId = "matriks";
+        let typeNameEn = "matrix";
+
+        if (cleanEnv === "vmatrix") {
+          typeNameId = "determinan matriks";
+          typeNameEn = "determinant of a";
+        } else if (cleanEnv === "Vmatrix") {
+          typeNameId = "norm matriks";
+          typeNameEn = "norm of a";
+        }
+
+        if (lang === "id") {
+          const rowNarrations = matrix.map((rowCells, rIdx) => {
+            const cells = rowCells
+              .map((c) => translateExpression(c, "id"))
+              .filter(Boolean);
+            return `baris ${rIdx + 1}: ${cells.join(", ")}`;
+          });
+          parts.push(
+            `${typeNameId} ${rowCount} kali ${colCount}: ${rowNarrations.join("; ")}`
+          );
+        } else {
+          const prefix =
+            cleanEnv === "vmatrix" || cleanEnv === "Vmatrix"
+              ? `${typeNameEn} ${rowCount} by ${colCount} matrix: `
+              : `${rowCount} by ${colCount} matrix: `;
+          const rowNarrations = matrix.map((rowCells, rIdx) => {
+            const cells = rowCells
+              .map((c) => translateExpression(c, "en"))
+              .filter(Boolean);
+            return `row ${rIdx + 1}: ${cells.join(", ")}`;
+          });
+          parts.push(`${prefix}${rowNarrations.join("; ")}`);
+        }
+
+        nodes?.push({
+          label:
+            lang === "id"
+              ? cleanEnv === "vmatrix"
+                ? "Determinan Matriks"
+                : "Matriks"
+              : cleanEnv === "vmatrix"
+                ? "Matrix Determinant"
+                : "Matrix",
+          spokenEn: `${cleanEnv === "vmatrix" ? "determinant of a " : ""}${rowCount} by ${colCount} matrix`,
+          spokenId: `${typeNameId} ${rowCount} kali ${colCount}`,
+          latex: src.slice(i, nextIdx),
+          children: matrix.map((rowCells, rIdx) => ({
+            label: lang === "id" ? `Baris ${rIdx + 1}` : `Row ${rIdx + 1}`,
+            spokenEn: `row ${rIdx + 1}: ${rowCells.map((c) => translateExpression(c, "en")).join(", ")}`,
+            spokenId: `baris ${rIdx + 1}: ${rowCells.map((c) => translateExpression(c, "id")).join(", ")}`,
+            latex: rowCells.join(" & "),
+          })),
+        });
+      } else if (cleanEnv === "cases") {
+        const rawCases = body
+          .split(/\\\\(?:\s*\[[^\]]*\])?|\\cr/)
+          .map((r) => r.trim())
+          .filter((r) => r.length > 0);
+
+        if (lang === "id") {
+          const caseNarrations = rawCases.map((row, idx) => {
+            const rowParts = row
+              .split("&")
+              .map((c) => translateExpression(c.trim(), "id"))
+              .filter(Boolean);
+            return `kondisi ${idx + 1}: ${rowParts.join(", ")}`;
+          });
+          parts.push(
+            `fungsi dengan ${rawCases.length} kondisi: ${caseNarrations.join("; ")}`
+          );
+        } else {
+          const caseNarrations = rawCases.map((row, idx) => {
+            const rowParts = row
+              .split("&")
+              .map((c) => translateExpression(c.trim(), "en"))
+              .filter(Boolean);
+            return `case ${idx + 1}: ${rowParts.join(", ")}`;
+          });
+          parts.push(
+            `piecewise function with ${rawCases.length} cases: ${caseNarrations.join("; ")}`
+          );
+        }
+      } else if (["aligned", "align", "gather"].includes(cleanEnv)) {
+        const lines = body
+          .split(/\\\\(?:\s*\[[^\]]*\])?|\\cr/)
+          .map((r) => r.trim())
+          .filter((r) => r.length > 0);
+        const narratedLines = lines.map((line) =>
+          translateExpression(line.replace(/&/g, " "), lang)
+        );
+        parts.push(narratedLines.join(", "));
+      } else {
+        parts.push(translateExpression(body, lang));
+      }
+
+      i = nextIdx;
+      continue;
+    }
+
     if (src.startsWith("\\frac", i)) {
       flushBuffer();
       const num = readBracedGroup(src, i + 5);
@@ -503,6 +702,11 @@ export function narrateLatexEquation(latex: string): EquationNarrationResult {
 
   // Also detect unknown LaTeX commands outside supported set
   const knownCommands = new Set([
+    "\\begin",
+    "\\end",
+    "\\cr",
+    "\\hline",
+    "\\vline",
     "\\frac",
     "\\sqrt",
     "\\int",
@@ -598,6 +802,18 @@ export function narrateLatexEquation(latex: string): EquationNarrationResult {
   for (const cmd of commandMatches) {
     if (!knownCommands.has(cmd) && !unsupported.includes(cmd)) {
       unsupported.push(cmd);
+    }
+  }
+
+  const envMatches = cleaned.matchAll(/\\begin\{([^}]+)\}/g);
+  for (const match of envMatches) {
+    const envName = match[1].trim();
+    const cleanEnv = envName.replace(/\*$/, "");
+    if (!SUPPORTED_ENVIRONMENTS.has(cleanEnv)) {
+      const macro = `\\begin{${envName}}`;
+      if (!unsupported.includes(macro)) {
+        unsupported.push(macro);
+      }
     }
   }
 

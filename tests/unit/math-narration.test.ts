@@ -29,12 +29,45 @@ describe("SONAR Deterministic Math Narration & MathML Engine", () => {
     expect(res.narrationId).toContain("akar kuadrat dari");
   });
 
-  it("flags unsupported matrix macros explicitly rather than dropping them", () => {
-    const res = narrateLatexEquation("A = \\begin{bmatrix} 1 & 2 \\\\ 3 & 4 \\end{bmatrix}");
+  it("flags unsupported macros explicitly rather than dropping them", () => {
+    const res = narrateLatexEquation("A \\stackrel{\\text{def}}{=} B");
     expect(res.supported).toBe(false);
-    expect(res.unsupportedConstructs).toContain("\\begin{bmatrix}");
+    expect(res.unsupportedConstructs).toContain("\\stackrel");
     expect(res.confidencePenalty).toBeGreaterThan(0);
     expect(res.narrationEn).toContain("Warning:");
+  });
+
+  it("narrates matrices and vector determinants cleanly without raw syntax or glued words", () => {
+    const latex =
+      "\\vec{u} \\times \\vec{v} = \\begin{vmatrix} \\hat{i} & \\hat{j} & \\hat{k} \\\\ u_1 & u_2 & u_3 \\\\ v_1 & v_2 & v_3 \\end{vmatrix} = (u_2 v_3 - u_3 v_2) \\hat{i} + (u_3 v_1 - u_1 v_3) \\hat{j} + (u_1 v_2 - u_2 v_1) \\hat{k}";
+    const res = narrateLatexEquation(latex);
+    expect(res.supported).toBe(true);
+    expect(res.unsupportedConstructs).toHaveLength(0);
+    expect(res.confidencePenalty).toBe(0);
+
+    // Verify determinant narration
+    expect(res.narrationId).toContain("determinan matriks 3 kali 3");
+    expect(res.narrationId).toContain("baris 1: vektor satuan i, vektor satuan j, vektor satuan k");
+    expect(res.narrationId).toContain("baris 2: u indeks satu, u indeks dua, u indeks tiga");
+    expect(res.narrationId).toContain("baris 3: v indeks satu, v indeks dua, v indeks tiga");
+
+    // Verify subscripts are not glued to subsequent variable names
+    expect(res.narrationId).not.toContain("duav");
+    expect(res.narrationId).not.toContain("tigav");
+    expect(res.narrationId).not.toContain("satuv");
+    expect(res.narrationId).toContain("u indeks dua v indeks tiga");
+    expect(res.narrationId).toContain("u indeks tiga v indeks satu");
+
+    // Verify no raw LaTeX delimiters or warnings
+    expect(res.narrationId).not.toContain("begin vmatrix");
+    expect(res.narrationId).not.toContain("end vmatrix");
+    expect(res.narrationId).not.toContain("Peringatan:");
+
+    // Verify English matrix narration
+    const bmatrix = narrateLatexEquation("A = \\begin{bmatrix} 1 & 2 \\\\ 3 & 4 \\end{bmatrix}");
+    expect(bmatrix.supported).toBe(true);
+    expect(bmatrix.narrationEn).toContain("2 by 2 matrix: row 1: 1, 2; row 2: 3, 4");
+    expect(bmatrix.narrationId).toContain("matriks 2 kali 2: baris 1: satu, dua; baris 2: tiga, empat");
   });
 
   it("converts valid LaTeX into sanitized semantic MathML", () => {
