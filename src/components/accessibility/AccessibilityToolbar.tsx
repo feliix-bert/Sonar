@@ -165,30 +165,6 @@ export function AccessibilityToolbar({ compact = false }: { compact?: boolean })
           />
         </div>
 
-        {/* Live Preview Card */}
-        <div className="rounded-xl border border-border/80 bg-surface-subtle/70 p-3">
-          <p className="mb-1.5 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-            {isEn ? "Live Preview" : "Pratinjau Teks"}
-          </p>
-          <div
-            className="rounded-lg border border-border/60 bg-background p-3 transition-all"
-            style={{
-              fontFamily:
-                store.readingFont === "atkinson"
-                  ? "var(--font-atkinson-hyperlegible), sans-serif"
-                  : "var(--font-poppins), sans-serif",
-              fontSize: `${store.fontSizePx}px`,
-              lineHeight: store.lineHeight,
-            }}
-          >
-            <p className="text-foreground">
-              {isEn
-                ? "Sample text: SONAR ensures accessible learning materials for all students."
-                : "Contoh teks: SONAR memastikan materi kuliah dapat diakses dengan nyaman."}
-            </p>
-          </div>
-        </div>
-
         {/* Toggles */}
         <div className="space-y-3 border-t pt-3">
           <div className="flex items-center justify-between">
