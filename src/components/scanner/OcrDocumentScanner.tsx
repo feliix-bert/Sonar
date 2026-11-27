@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useDropzone } from "react-dropzone";
 import {
   AlertCircle,
+  Bot,
   CheckCircle2,
   FileText,
   FileUp,
   Headphones,
+  List,
   Loader2,
   ScanText,
+  Sparkles,
   Square,
   Upload,
   Volume2,
@@ -29,6 +32,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useLiveAnnouncer } from "@/components/accessibility/LiveAnnouncer";
 import { createClient } from "@/lib/supabase/client";
 import { validatePdfFile } from "@/lib/upload/pdf-validation";
@@ -44,10 +54,26 @@ import {
 } from "@/components/document/FormattedMathText";
 import { narrateMixedText, narrateTableBlock } from "@/features/math-ocr/math-narration";
 import { parseTableData, narrateTable } from "@/lib/accessibility/table-narration";
-import { ScannedMaterialAiChat } from "@/components/scanner/ScannedMaterialAiChat";
+import { ScanCompanionPanel } from "@/components/scanner/ScanCompanionPanel";
 import { useTranslation } from "@/lib/i18n/use-translation";
 import type { CourseRow } from "@/lib/data/workspace";
 import type { ExtractedBlockOutput } from "@/features/ocr/ocr-provider";
+
+function useIsXlDesktop(): boolean {
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window === "undefined") return () => undefined;
+      const media = window.matchMedia("(min-width: 1280px)");
+      media.addEventListener("change", onStoreChange);
+      return () => media.removeEventListener("change", onStoreChange);
+    },
+    () =>
+      typeof window !== "undefined"
+        ? window.matchMedia("(min-width: 1280px)").matches
+        : false,
+    () => false
+  );
+}
 
 interface OcrDocumentScannerProps {
   courses: CourseRow[];
@@ -95,10 +121,46 @@ export function OcrDocumentScanner({
   const [scanStageMessage, setScanStageMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<ScanResultData | null>(null);
+  const [activePanel, setActivePanel] = useState<"outline" | "ai" | null>("outline");
+  const [activeBlockIndex, setActiveBlockIndex] = useState<number | null>(null);
+  const isXlDesktop = useIsXlDesktop();
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [currentlyPlayingIndex, setCurrentlyPlayingIndex] = useState<number | null>(
     null
   );
+
+  const togglePanel = (panel: "outline" | "ai") => {
+    setActivePanel((prev) => {
+      const next = prev === panel ? null : panel;
+      announce(
+        next === "outline"
+          ? "Panel daftar isi dibuka."
+          : next === "ai"
+            ? "Panel Tanya AI dibuka."
+            : "Panel samping ditutup.",
+        "polite"
+      );
+      return next;
+    });
+  };
+
+  const jumpToBlock = (index: number) => {
+    setActiveBlockIndex(index);
+    if (!isXlDesktop) {
+      setActivePanel(null);
+    }
+    requestAnimationFrame(() => {
+      const el = window.document.getElementById(`scan-block-${index}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        el.focus({ preventScroll: true });
+      }
+    });
+    const target = scanResult?.blocks[index];
+    if (target) {
+      announce(`Berpindah ke blok ${index + 1}: ${target.blockType}.`, "polite");
+    }
+  };
   const [isSharing, setIsSharing] = useState(false);
   const [hasShared, setHasShared] = useState(false);
   const [shareSuccessMessage, setShareSuccessMessage] = useState<string | null>(null);
@@ -838,95 +900,132 @@ export function OcrDocumentScanner({
 
       {scanResult ? (
         <>
-          <section
-            aria-label="Hasil pemindaian dokumen"
-            className="space-y-5 rounded-3xl border border-border bg-card p-5 shadow-card sm:p-7"
-          >
-          <div className="flex flex-col justify-between gap-4 border-b border-border pb-4 sm:flex-row sm:items-center">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="size-5 text-primary" aria-hidden="true" />
-                <h2 className="font-heading text-lg font-bold text-foreground">
-                  {scanResult.documentTitle}
-                </h2>
+          <div className="grid gap-6 xl:grid-cols-12 items-start">
+            <div
+              className={cn(
+                "space-y-5 transition-all min-w-0",
+                activePanel && isXlDesktop ? "xl:col-span-8" : "xl:col-span-12"
+              )}
+            >
+              <section
+                aria-label="Hasil pemindaian dokumen"
+                className="space-y-5 rounded-3xl border border-border bg-card p-5 shadow-card sm:p-7"
+              >
+              <div className="flex flex-col justify-between gap-4 border-b border-border pb-4 sm:flex-row sm:items-center">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="size-5 text-primary" aria-hidden="true" />
+                    <h2 className="font-heading text-lg font-bold text-foreground">
+                      {scanResult.documentTitle}
+                    </h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground font-ui">
+                    Tingkat keyakinan ekstraksi: {Math.round(scanResult.confidence)}%
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 font-ui">
+                  <div
+                    className="flex items-center rounded-full border border-border bg-background/80 p-0.5 text-xs"
+                    role="group"
+                    aria-label="Pilihan bahasa teks dokumen"
+                  >
+                    <button
+                      type="button"
+                      disabled={isTranslating}
+                      onClick={() => handleSwitchLanguage("id")}
+                      className={cn(
+                        "flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition-colors disabled:opacity-50",
+                        language === "id"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {isTranslating && language !== "id" ? (
+                        <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+                      ) : null}
+                      <span>Indonesia</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isTranslating}
+                      onClick={() => handleSwitchLanguage("en")}
+                      className={cn(
+                        "flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition-colors disabled:opacity-50",
+                        language === "en"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {isTranslating && language !== "en" ? (
+                        <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+                      ) : null}
+                      <span>English</span>
+                    </button>
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant={activePanel === "outline" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => togglePanel("outline")}
+                    className={cn(
+                      "min-h-10 rounded-full px-3.5 text-xs font-semibold gap-1.5 transition-colors",
+                      activePanel === "outline" &&
+                        "bg-brand-mint text-brand-ink hover:bg-brand-mint/90 border-brand-mint shadow-xs"
+                    )}
+                  >
+                    <List className="size-3.5" aria-hidden="true" />
+                    <span>Daftar Isi</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant={activePanel === "ai" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => togglePanel("ai")}
+                    className={cn(
+                      "min-h-10 rounded-full px-3.5 text-xs font-semibold gap-1.5 transition-colors",
+                      activePanel === "ai" &&
+                        "bg-tint-blue text-brand-ink hover:bg-tint-blue/90 border-tint-blue shadow-xs"
+                    )}
+                  >
+                    <Bot className="size-3.5" aria-hidden="true" />
+                    <span>Tanya AI</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={isPlayingAudio ? stopAllAudio : speakAllDocument}
+                    className="min-h-10 rounded-full px-4 text-xs font-semibold"
+                  >
+                    {isPlayingAudio ? (
+                      <>
+                        <Square className="size-3.5" aria-hidden="true" />
+                        <span>Hentikan Suara</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="size-3.5" aria-hidden="true" />
+                        <span>Dengarkan Semua</span>
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    asChild
+                    size="sm"
+                    className="min-h-10 rounded-full px-4 text-xs font-semibold"
+                  >
+                    <Link href={`/reader/${scanResult.documentId}`}>
+                      <Headphones className="size-3.5" aria-hidden="true" />
+                      <span>Buka di Pembaca</span>
+                    </Link>
+                  </Button>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground font-ui">
-                Tingkat keyakinan ekstraksi: {Math.round(scanResult.confidence)}%
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 font-ui">
-              <div
-                className="flex items-center rounded-full border border-border bg-background/80 p-0.5 text-xs"
-                role="group"
-                aria-label="Pilihan bahasa teks dokumen"
-              >
-                <button
-                  type="button"
-                  disabled={isTranslating}
-                  onClick={() => handleSwitchLanguage("id")}
-                  className={cn(
-                    "flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition-colors disabled:opacity-50",
-                    language === "id"
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {isTranslating && language !== "id" ? (
-                    <Loader2 className="size-3 animate-spin" aria-hidden="true" />
-                  ) : null}
-                  <span>Indonesia</span>
-                </button>
-                <button
-                  type="button"
-                  disabled={isTranslating}
-                  onClick={() => handleSwitchLanguage("en")}
-                  className={cn(
-                    "flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition-colors disabled:opacity-50",
-                    language === "en"
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {isTranslating && language !== "en" ? (
-                    <Loader2 className="size-3 animate-spin" aria-hidden="true" />
-                  ) : null}
-                  <span>English</span>
-                </button>
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={isPlayingAudio ? stopAllAudio : speakAllDocument}
-                className="min-h-10 rounded-full px-4 text-xs font-semibold"
-              >
-                {isPlayingAudio ? (
-                  <>
-                    <Square className="size-3.5" aria-hidden="true" />
-                    <span>Hentikan Suara</span>
-                  </>
-                ) : (
-                  <>
-                    <Volume2 className="size-3.5" aria-hidden="true" />
-                    <span>Dengarkan Semua</span>
-                  </>
-                )}
-              </Button>
-
-              <Button
-                asChild
-                size="sm"
-                className="min-h-10 rounded-full px-4 text-xs font-semibold"
-              >
-                <Link href={`/reader/${scanResult.documentId}`}>
-                  <Headphones className="size-3.5" aria-hidden="true" />
-                  <span>Buka di Pembaca</span>
-                </Link>
-              </Button>
-            </div>
-          </div>
 
           {/* Post-Scan Sharing Option to Course Materials */}
           <div className="rounded-2xl border border-primary/25 bg-surface-subtle/70 p-4 space-y-3 font-ui text-left">
@@ -1043,7 +1142,14 @@ export function OcrDocumentScanner({
               return (
                 <div
                   key={idx}
-                  className="rounded-2xl border border-border bg-surface-subtle/50 p-4 space-y-2.5"
+                  id={`scan-block-${idx}`}
+                  tabIndex={-1}
+                  className={cn(
+                    "rounded-2xl border bg-surface-subtle/50 p-4 space-y-2.5 transition-all focus:outline-none",
+                    activeBlockIndex === idx
+                      ? "border-primary bg-primary/5 ring-2 ring-primary/40 shadow-xs"
+                      : "border-border"
+                  )}
                 >
                   <div className="flex items-center justify-between gap-2 font-ui">
                     <span className="text-xs font-semibold text-muted-foreground">
@@ -1156,16 +1262,68 @@ export function OcrDocumentScanner({
             })}
           </div>
         </section>
+      </div>
 
-        {/* Real-time Grounded RAG Chat with Scanned Material */}
-        <ScannedMaterialAiChat
+      {/* Docked Single Companion Panel on xl+ */}
+      {activePanel && isXlDesktop ? (
+        <aside
+          aria-label={
+            activePanel === "outline" ? "Daftar isi materi" : "Tanya asisten materi"
+          }
+          className="sticky top-20 flex max-h-[calc(100dvh-6.5rem)] min-w-0 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-card xl:col-span-4"
+        >
+          <ScanCompanionPanel
+            documentId={scanResult.documentId}
+            documentTitle={scanResult.documentTitle}
+            blocks={scanResult.blocks}
+            language={language}
+            activeTab={activePanel}
+            onTabChange={(tab) => setActivePanel(tab)}
+            onClose={() => setActivePanel(null)}
+            activeBlockIndex={activeBlockIndex}
+            onJumpToBlock={jumpToBlock}
+          />
+        </aside>
+      ) : null}
+    </div>
+
+    {/* Responsive Slide-over Sheet on < xl (< 1280px) */}
+    <Sheet
+      open={Boolean(activePanel) && !isXlDesktop}
+      onOpenChange={(open) => {
+        if (!open) setActivePanel(null);
+      }}
+    >
+      <SheetContent
+        side="right"
+        className="flex w-full max-w-sm flex-col gap-0 p-0 sm:max-w-md"
+      >
+        <SheetHeader className="border-b border-border px-4 py-3.5 text-left">
+          <SheetTitle className="font-heading text-base font-bold">
+            {activePanel === "ai" ? "Tanya AI" : "Daftar Isi & Navigasi"}
+          </SheetTitle>
+          <SheetDescription className="text-xs">
+            {activePanel === "ai"
+              ? "Jawaban mengacu pada isi materi yang baru saja dipindai."
+              : "Lompat langsung ke judul bab, rumus, atau tabel materi."}
+          </SheetDescription>
+        </SheetHeader>
+        <ScanCompanionPanel
           documentId={scanResult.documentId}
           documentTitle={scanResult.documentTitle}
           blocks={scanResult.blocks}
           language={language}
+          activeTab={activePanel || "outline"}
+          onTabChange={(tab) => setActivePanel(tab)}
+          onClose={() => setActivePanel(null)}
+          activeBlockIndex={activeBlockIndex}
+          onJumpToBlock={jumpToBlock}
+          hideHeaderInSheet
         />
-      </>
-    ) : null}
+      </SheetContent>
+    </Sheet>
+  </>
+) : null}
     </div>
   );
 }
