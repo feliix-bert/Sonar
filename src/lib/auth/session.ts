@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import type { AppRole } from "@/types/database";
+import { ROLE_COOKIE_NAME } from "@/lib/auth/cookie-config";
 
 export interface AppUserSession {
   id: string;
@@ -48,7 +49,7 @@ export const DEMO_PROFILES: Record<"student" | "volunteer" | "admin", AppUserSes
 
 export const getCurrentAppUser = cache(async function getCurrentAppUser(): Promise<AppUserSession | null> {
   const cookieStore = await cookies();
-  const roleCookie = cookieStore.get("sonar_role")?.value as "student" | "volunteer" | "admin" | undefined;
+  const roleCookie = cookieStore.get(ROLE_COOKIE_NAME)?.value as "student" | "volunteer" | "admin" | undefined;
 
   if (roleCookie && DEMO_PROFILES[roleCookie]) {
     return DEMO_PROFILES[roleCookie];

@@ -2,6 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
 import { getPublicEnv, getSupabasePublicKey, isSupabaseConfigured } from "@/lib/env";
+import {
+  ROLE_COOKIE_NAME,
+  SESSION_COOKIE_OPTIONS,
+  SUPABASE_COOKIE_OPTIONS,
+} from "@/lib/auth/cookie-config";
 
 const PROTECTED_PREFIXES = [
   "/dashboard",
@@ -34,10 +39,11 @@ export async function updateSession(request: NextRequest) {
 
   let hasAuth = false;
 
-  // Check demo session cookie
-  const demoRole = request.cookies.get("sonar_role")?.value;
+  // Check demo/role session cookie with 30-day persistent sliding expiration
+  const demoRole = request.cookies.get(ROLE_COOKIE_NAME)?.value;
   if (demoRole === "student" || demoRole === "volunteer" || demoRole === "admin") {
     hasAuth = true;
+    response.cookies.set(ROLE_COOKIE_NAME, demoRole, SESSION_COOKIE_OPTIONS);
   }
 
   // Check Supabase session if configured
@@ -50,6 +56,7 @@ export async function updateSession(request: NextRequest) {
         env.NEXT_PUBLIC_SUPABASE_URL,
         key,
         {
+          cookieOptions: SUPABASE_COOKIE_OPTIONS,
           cookies: {
             getAll() {
               return request.cookies.getAll();
@@ -59,9 +66,17 @@ export async function updateSession(request: NextRequest) {
                 request.cookies.set(name, value)
               );
               response = NextResponse.next({ request });
-              cookiesToSet.forEach(({ name, value, options }) =>
-                response.cookies.set(name, value, options)
-              );
+              cookiesToSet.forEach(({ name, value, options }) => {
+                const isDeletion = options?.maxAge !== undefined && options.maxAge <= 0;
+                const mergedOptions = isDeletion
+                  ? { ...options, maxAge: 0 }
+                  : {
+                      ...SUPABASE_COOKIE_OPTIONS,
+                      ...options,
+                      maxAge: options?.maxAge ?? SUPABASE_COOKIE_OPTIONS.maxAge,
+                    };
+                response.cookies.set(name, value, mergedOptions);
+              });
             },
           },
         }
@@ -82,7 +97,11 @@ export async function updateSession(request: NextRequest) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("redirectTo", pathname);
-    return NextResponse.redirect(loginUrl);
+    const redirectResponse = NextResponse.redirect(loginUrl);
+    response.cookies.getAll().forEach((c) => {
+      redirectResponse.cookies.set(c.name, c.value, c);
+    });
+    return redirectResponse;
   }
 
   return response;

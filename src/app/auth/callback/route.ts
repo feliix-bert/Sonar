@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured, getAppUrl } from "@/lib/env";
+import {
+  ROLE_COOKIE_NAME,
+  SESSION_COOKIE_OPTIONS,
+} from "@/lib/auth/cookie-config";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -83,14 +87,9 @@ export async function GET(request: Request) {
           );
         }
 
-        // Establish student role cookie session
+        // Establish student role cookie session with 30-day persistence
         const cookieStore = await cookies();
-        cookieStore.set("sonar_role", "student", {
-          path: "/",
-          httpOnly: true,
-          sameSite: "lax",
-          secure: process.env.NODE_ENV === "production",
-        });
+        cookieStore.set(ROLE_COOKIE_NAME, "student", SESSION_COOKIE_OPTIONS);
 
         return NextResponse.redirect(`${origin}${safeNext}`);
       }

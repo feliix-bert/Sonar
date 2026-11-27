@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import {
+  ROLE_COOKIE_NAME,
+  SESSION_COOKIE_OPTIONS,
+} from "@/lib/auth/cookie-config";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -10,12 +14,7 @@ export async function GET(req: Request) {
   }
 
   const cookieStore = await cookies();
-  cookieStore.set("sonar_role", role, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-  });
+  cookieStore.set(ROLE_COOKIE_NAME, role, SESSION_COOKIE_OPTIONS);
 
   const target =
     role === "admin"

@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getAppUrl, isSupabaseConfigured } from "@/lib/env";
 import {
+  ROLE_COOKIE_NAME,
+  SESSION_COOKIE_OPTIONS,
+} from "@/lib/auth/cookie-config";
+import {
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
@@ -62,13 +66,26 @@ export async function loginAction(input: {
           .trim();
         const email = user.email || "";
 
+        let roleValue: "student" | "volunteer" | "admin" = "student";
         if (
           metaRole === "admin" ||
           email === "admin@sonar.ac.id" ||
           email === "hendra.gunawan@faculty.ac.id"
         ) {
           defaultTarget = "/admin";
+          roleValue = "admin";
+        } else if (
+          metaRole === "volunteer" ||
+          metaRole === "reviewer" ||
+          email === "volunteer@sonar.ac.id" ||
+          email === "dewi.sartika@volunteer.sonar.ac.id"
+        ) {
+          defaultTarget = "/review";
+          roleValue = "volunteer";
         }
+
+        const cookieStore = await cookies();
+        cookieStore.set(ROLE_COOKIE_NAME, roleValue, SESSION_COOKIE_OPTIONS);
       }
 
       const safeRedirect =
@@ -79,9 +96,9 @@ export async function loginAction(input: {
     }
   }
 
-  // Graceful fallback for local development: set default student session
+  // Graceful fallback for local development: set default student session with 30-day persistence
   const cookieStore = await cookies();
-  cookieStore.set("sonar_role", "student", { path: "/", httpOnly: true, sameSite: "lax" });
+  cookieStore.set(ROLE_COOKIE_NAME, "student", SESSION_COOKIE_OPTIONS);
   const safeRedirect =
     input.redirectTo && input.redirectTo.startsWith("/")
       ? input.redirectTo
@@ -91,7 +108,7 @@ export async function loginAction(input: {
 
 export async function loginAsDemoRole(role: "student" | "volunteer" | "admin", redirectTo?: string) {
   const cookieStore = await cookies();
-  cookieStore.set("sonar_role", role, { path: "/", httpOnly: true, sameSite: "lax" });
+  cookieStore.set(ROLE_COOKIE_NAME, role, SESSION_COOKIE_OPTIONS);
   
   let target = "/dashboard";
   if (redirectTo && redirectTo.startsWith("/")) {
@@ -283,7 +300,7 @@ export async function signInWithGoogleAction(redirectTo?: string) {
 
 export async function signOutAction() {
   const cookieStore = await cookies();
-  cookieStore.delete("sonar_role");
+  cookieStore.delete(ROLE_COOKIE_NAME);
   
   if (isSupabaseConfigured()) {
     const supabase = await createServerSupabaseClient();
