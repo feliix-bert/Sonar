@@ -88,6 +88,7 @@ export function OcrDocumentScanner({
   const [courseId, setCourseId] = useState(initialCourse);
   const [language, setLanguage] = useState<"id" | "en">("id");
   const [documentTitle, setDocumentTitle] = useState("");
+  const [isCustomTitle, setIsCustomTitle] = useState(false);
   const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
@@ -118,6 +119,8 @@ export function OcrDocumentScanner({
   const clearSelection = () => {
     setSelectedPdfFile(null);
     setScanResult(null);
+    setDocumentTitle("");
+    setIsCustomTitle(false);
     setHasShared(false);
     setShareSuccessMessage(null);
     setShareErrorMessage(null);
@@ -145,6 +148,8 @@ export function OcrDocumentScanner({
     if (!file) return;
     setErrorMessage(null);
     setScanResult(null);
+    setDocumentTitle("");
+    setIsCustomTitle(false);
     setScanProgress(0);
     setScanStageMessage("");
     setHasShared(false);
@@ -219,8 +224,7 @@ export function OcrDocumentScanner({
         });
       }, 400);
 
-      const resolvedTitle =
-        documentTitle.trim() || selectedPdfFile.name.replace(/\.pdf$/i, "");
+      const resolvedTitle = isCustomTitle ? documentTitle.trim() : "";
 
       let response: Response;
 
@@ -331,6 +335,7 @@ export function OcrDocumentScanner({
         setScanResult(data);
         if (data.documentTitle) {
           setDocumentTitle(data.documentTitle);
+          setIsCustomTitle(false);
         }
         setTranslationCache({ [language]: data.blocks });
         announce(
@@ -624,8 +629,15 @@ export function OcrDocumentScanner({
             <Input
               id="ocr-title"
               value={documentTitle}
-              onChange={(e) => setDocumentTitle(e.target.value)}
-              placeholder={t("readingTitlePlaceholder")}
+              onChange={(e) => {
+                setDocumentTitle(e.target.value);
+                setIsCustomTitle(e.target.value.trim().length > 0);
+              }}
+              placeholder={
+                selectedPdfFile
+                  ? selectedPdfFile.name.replace(/\.pdf$/i, "")
+                  : t("readingTitlePlaceholder")
+              }
               className="h-10 rounded-xl"
             />
           </div>
