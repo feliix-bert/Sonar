@@ -158,6 +158,44 @@ export interface Database {
         };
         Relationships: [];
       };
+      math_narration_cache: {
+        Row: {
+          id: string;
+          latex_hash: string;
+          latex_normalized: string;
+          narration_id: string;
+          narration_en: string;
+          exploration_tree: Json | null;
+          source: string;
+          verified: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          latex_hash: string;
+          latex_normalized: string;
+          narration_id: string;
+          narration_en: string;
+          exploration_tree?: Json | null;
+          source?: string;
+          verified?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          latex_hash?: string;
+          latex_normalized?: string;
+          narration_id?: string;
+          narration_en?: string;
+          exploration_tree?: Json | null;
+          source?: string;
+          verified?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       courses: {
         Row: {
           id: string;

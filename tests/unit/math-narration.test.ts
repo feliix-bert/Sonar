@@ -270,4 +270,35 @@ describe("SONAR Deterministic Math Narration & MathML Engine", () => {
     expect(tableNarration.toLowerCase()).toContain("selisih himpunan");
     expect(tableNarration.toLowerCase()).toContain("himpunan kosong");
   });
+
+  it("narrates binomial coefficients accurately in both languages", () => {
+    const res = narrateLatexEquation("\\binom{n}{k} = \\frac{n!}{k!(n-k)!}");
+    expect(res.supported).toBe(true);
+    expect(res.narrationId.toLowerCase()).toContain("kombinasi k dari n");
+    expect(res.narrationEn.toLowerCase()).toContain("n choose k");
+  });
+
+  it("narrates partial derivatives with natural conversational order", () => {
+    const firstOrder = narrateLatexEquation("\\frac{\\partial f}{\\partial x}");
+    expect(firstOrder.supported).toBe(true);
+    expect(firstOrder.narrationId.toLowerCase()).toContain("turunan parsial f terhadap x");
+    expect(firstOrder.narrationEn.toLowerCase()).toContain("partial derivative of f with respect to x");
+
+    const secondOrder = narrateLatexEquation("\\frac{\\partial^2 f}{\\partial x^2}");
+    expect(secondOrder.supported).toBe(true);
+    expect(secondOrder.narrationId.toLowerCase()).toContain("turunan parsial kedua f terhadap x");
+    expect(secondOrder.narrationEn.toLowerCase()).toContain("second partial derivative of f with respect to x");
+  });
+
+  it("narrates multi-variable calculus double and contour integrals cleanly", () => {
+    const doubleInt = narrateLatexEquation("\\iint_D x^2 + y^2 \\, dA");
+    expect(doubleInt.supported).toBe(true);
+    expect(doubleInt.narrationId.toLowerCase()).toContain("integral lipat dua");
+    expect(doubleInt.narrationEn.toLowerCase()).toContain("double integral");
+
+    const contourInt = narrateLatexEquation("\\oint_C \\vec{F} \\cdot d\\vec{r}");
+    expect(contourInt.supported).toBe(true);
+    expect(contourInt.narrationId.toLowerCase()).toContain("integral lintasan tertutup");
+    expect(contourInt.narrationEn.toLowerCase()).toContain("contour integral");
+  });
 });
