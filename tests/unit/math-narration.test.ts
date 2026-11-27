@@ -183,7 +183,7 @@ describe("SONAR Deterministic Math Narration & MathML Engine", () => {
     expect(tableSpeech).toContain("Memiliki 2 kolom dan 2 baris");
     expect(tableSpeech).toContain("Judul kolom: Kondisi, Hasil");
     expect(tableSpeech).toContain("Baris 1: Kondisi: D > 0 dan f indeks xx > 0; Hasil: Minimum Lokal");
-    expect(tableSpeech).toContain("Baris 2: Kondisi: panjang vektor u dikali silang vektor v = 0; Hasil: vektor u sejajar vektor v");
+    expect(tableSpeech).toContain("Baris 2: Kondisi: panjang vektor u dikali silang vektor v sama dengan nol; Hasil: vektor u sejajar vektor v");
   });
 
   it("safely auto-wraps Indonesian vector and norm sentences without capturing prose words", () => {

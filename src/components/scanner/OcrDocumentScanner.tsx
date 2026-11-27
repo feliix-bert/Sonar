@@ -172,7 +172,7 @@ export function OcrDocumentScanner({
       if (accepted[0]) void handleFileSelect(accepted[0]);
     },
     onDropRejected: () => {
-      const msg = "Format tidak didukung. Pemindaian OCR hanya menerima berkas PDF (.pdf).";
+      const msg = "Format tidak didukung. Hanya menerima berkas materi kuliah berformat PDF (.pdf).";
       setErrorMessage(msg);
       announce(msg, "assertive");
       clearSelection();
@@ -181,7 +181,7 @@ export function OcrDocumentScanner({
 
   const executeOcrScan = async () => {
     if (!selectedPdfFile) {
-      const msg = "Pilih berkas dokumen PDF terlebih dahulu sebelum memindai.";
+      const msg = "Pilih berkas PDF materi kuliah terlebih dahulu sebelum memindai.";
       setErrorMessage(msg);
       announce(msg, "assertive");
       return;
@@ -192,7 +192,7 @@ export function OcrDocumentScanner({
       setScanProgress(12);
       setScanStageMessage("Membaca halaman PDF & mengonfigurasi model AI Vision...");
       setErrorMessage(null);
-      announce("Memulai ekstraksi OCR dan konversi MathML…", "polite");
+      announce("Memulai pemindaian materi kuliah dan penyiapan audio…", "polite");
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
@@ -309,8 +309,8 @@ export function OcrDocumentScanner({
         }
 
         const formattedError = serverDetail
-          ? `Gagal memproses pemindaian OCR (HTTP ${response.status}${response.statusText ? ` - ${response.statusText}` : ""}): ${serverDetail}`
-          : describeHttpFailure(response.status, "pemindaian OCR");
+          ? `Gagal memproses pemindaian materi (HTTP ${response.status}${response.statusText ? ` - ${response.statusText}` : ""}): ${serverDetail}`
+          : describeHttpFailure(response.status, "pemindaian materi kuliah");
 
         console.error("[OcrDocumentScanner] OCR Request Failed Details:", {
           httpStatus: response.status,
@@ -325,7 +325,7 @@ export function OcrDocumentScanner({
       }
 
       setScanProgress(100);
-      setScanStageMessage("Konversi OCR selesai! Menyajikan struktur dokumen aksesibel...");
+      setScanStageMessage("Pemindaian materi selesai! Menyajikan struktur dokumen bacaan aksesibel...");
 
       setTimeout(() => {
         setScanResult(data);
@@ -350,7 +350,7 @@ export function OcrDocumentScanner({
       setScanProgress(0);
       setScanStageMessage("");
       const msg =
-        err instanceof Error ? err.message : "Gagal memproses pemindaian OCR.";
+        err instanceof Error ? err.message : "Gagal memproses pemindaian materi kuliah.";
       setErrorMessage(msg);
       announce(msg, "assertive");
     } finally {
@@ -686,7 +686,7 @@ export function OcrDocumentScanner({
                         PDF
                       </span>
                       <span>
-                        {scanning ? `Memproses OCR (${scanProgress}%)…` : formatFileSize(selectedPdfFile.size)}
+                        {scanning ? `Menyiapkan materi (${scanProgress}%)…` : formatFileSize(selectedPdfFile.size)}
                       </span>
                     </div>
                   </div>
@@ -717,12 +717,12 @@ export function OcrDocumentScanner({
                 </div>
               </div>
 
-              {/* Live Loading Progress Bar during OCR Conversion */}
+              {/* Live Loading Progress Bar during Document Conversion */}
               {scanning && (
                 <div
                   role="status"
                   aria-live="polite"
-                  aria-label="Status konversi dokumen OCR"
+                  aria-label="Status pemindaian materi kuliah"
                   className="rounded-2xl border border-primary/25 bg-surface-subtle/80 p-4 sm:p-5 space-y-3.5 text-left shadow-xs transition-all"
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -746,7 +746,7 @@ export function OcrDocumentScanner({
 
                   <Progress
                     value={scanProgress}
-                    aria-label={`Progres konversi OCR: ${scanProgress}%`}
+                    aria-label={`Progres pemindaian: ${scanProgress}%`}
                     className="h-2 rounded-full bg-muted/80"
                   />
 
@@ -805,7 +805,7 @@ export function OcrDocumentScanner({
               size="sm"
               onClick={cancelScan}
               className="min-h-10 rounded-full px-4 text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-              aria-label="Batalkan pemindaian OCR"
+              aria-label="Batalkan pemindaian materi"
             >
               <X className="size-4 mr-1.5" aria-hidden="true" />
               Batalkan
@@ -819,7 +819,7 @@ export function OcrDocumentScanner({
             className="min-h-11 rounded-full px-6 text-sm font-semibold shadow-xs"
           >
             {!scanning && <ScanText className="size-4 mr-2" aria-hidden="true" />}
-            <span>{scanning ? `Memindai (${scanProgress}%)…` : "Mulai Pindai OCR"}</span>
+            <span>{scanning ? `Memindai (${scanProgress}%)…` : "Mulai Pindai Materi Kuliah"}</span>
           </Button>
         </div>
       </div>

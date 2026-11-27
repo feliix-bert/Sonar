@@ -32,10 +32,10 @@ export const COMMAND_ROUTES: CommandRouteItem[] = [
     keywords: "courses mata kuliah materi silabus kelas pelajaran daftar",
   },
   {
-    label: "Unggah Dokumen PDF",
+    label: "Pindai Materi Kuliah",
     href: "/upload",
     icon: FileUp,
-    keywords: "upload unggah scan pindai dokumen berkas pdf ocr materi baru",
+    keywords: "upload unggah scan pindai dokumen berkas pdf ocr materi baru mata kuliah",
   },
   {
     label: "Accessible Reader",

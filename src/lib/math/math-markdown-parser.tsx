@@ -19,8 +19,22 @@ export function autoWrapUnescapedMath(text: string): string {
     return `___MATH_PLACEHOLDER_${idx}___`;
   };
 
+  const unwrapInnerPlaceholders = (expr: string): string => {
+    return expr.replace(/___MATH_PLACEHOLDER_(\d+)___/g, (_m, idx) => {
+      const inner = protectedMath[Number(idx)];
+      if (!inner) return _m;
+      return inner
+        .replace(/^\$\$([\s\S]*)\$\$$/, "$1")
+        .replace(/^\\\[([\s\S]*)\\\]$/, "$1")
+        .replace(/^\\\(([\s\S]*)\\\)$/, "$1")
+        .replace(/^\$([^\$\n]+)\$$/, "$1")
+        .trim();
+    });
+  };
+
   let workingText = text
     .replace(/(?<![a-zA-Z0-9\\])o\{([a-zA-Z0-9]+)\}/g, "\\bar{$1}")
+    .replace(/\\\\+([a-zA-Z]+)/g, "\\$1")
     .replace(mathRegex, (m) => protect(m));
 
   // 1. Set notation: e.g. \{(x, y), L - 3 \le x \le L, 0 \le y \le W\} or \{(x, y) \in S, ...\}
@@ -47,7 +61,7 @@ export function autoWrapUnescapedMath(text: string): string {
   // A \setminus B = A \cap \bar{B}, P(A \cup B) = P(A) + P(B) - P(A \cap B), A \setminus (B \cup C)
   // Placed before parentheses-wrapping (Rule 3) so expressions like (A \setminus B) \cup (B \setminus A) stay unified.
   const singleSetTerm =
-    '(?:\\\\[a-zA-Z]+\\{[^{}\\n]+\\}|\\\\[a-zA-Z]+|[A-Za-z0-9](?:\\^[a-zA-Z0-9c]|\\\'|_[0-9a-zA-Z]+)?)';
+    '(?:___MATH_PLACEHOLDER_\\d+___|\\\\[a-zA-Z]+\\{[^{}\\n]+\\}|\\\\[a-zA-Z]+|[A-Za-z0-9](?:\\^[a-zA-Z0-9c]|\\\'|_[0-9a-zA-Z]+)?)';
   const parenSetTerm =
     '\\([a-zA-Z0-9_\\\\\\s\\^\\\'\\{\\}\\+\\-\\*\\/\\(\\)]+\\)';
   const setOperand = '(?:[A-Za-z0-9]?' + parenSetTerm + '|' + singleSetTerm + ')';
@@ -83,11 +97,11 @@ export function autoWrapUnescapedMath(text: string): string {
   );
   workingText = workingText.replace(setEquationRegex, (m) => {
     if (
-      /\\(?:cup|cap|setminus|emptyset|varnothing|subset|subseteq|supset|supseteq|bar\{[A-Za-z]\})/.test(
+      /\\(?:cup|cap|setminus|emptyset|varnothing|subset|subseteq|supset|supseteq|bar\{[A-Za-z]\})|___MATH_PLACEHOLDER_/.test(
         m
       )
     ) {
-      return protect(`\\(${m.trim()}\\)`);
+      return protect(`\\(${unwrapInnerPlaceholders(m.trim())}\\)`);
     }
     return m;
   });
@@ -95,7 +109,7 @@ export function autoWrapUnescapedMath(text: string): string {
   // 2b.ii. Chained or binary set operations: e.g. A \cup B, A \cap B, (A \setminus B) \cup (B \setminus A)
   const setOpRegex = new RegExp('(?<![a-zA-Z0-9_\\\\])' + setChain, 'g');
   workingText = workingText.replace(setOpRegex, (m) =>
-    protect(`\\(${m.trim()}\\)`)
+    protect(`\\(${unwrapInnerPlaceholders(m.trim())}\\)`)
   );
 
   // 3. Parentheses containing LaTeX expressions: e.g. (\mathbb{R}^3), (\bar{u} - \bar{v})

@@ -34,7 +34,7 @@ async function ReviewQueueBody() {
     <div className="mx-auto max-w-7xl space-y-6 font-sans">
       <PageHeader
         title="Antrean Review Volunteer"
-        description="Periksa keakuratan teks hasil OCR, rumus MathML, tabel, dan deskripsi gambar agar materi layak dibagikan kepada mahasiswa se-kelas."
+        description="Periksa keakuratan teks bacaan hasil pindai materi, rumus matematika, tabel, dan deskripsi gambar agar materi layak dibagikan kepada mahasiswa se-kelas."
       />
 
       <ReviewQueueTable documents={allDocs} courses={courses} />

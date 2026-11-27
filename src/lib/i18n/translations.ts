@@ -109,7 +109,7 @@ export const TRANSLATIONS = {
     // Volunteer Dashboard
     volunteerBadge: "Workspace Volunteer & Kurator Konten",
     volunteerGreetingDesc:
-      "Fokus Anda adalah memverifikasi keakuratan teks OCR, deskripsi visual gambar, dan formula MathML agar mahasiswa tunanetra mendapatkan materi aksesibel berkualitas tinggi.",
+      "Fokus Anda adalah memverifikasi keakuratan teks bacaan, deskripsi visual gambar, dan formula MathML agar mahasiswa tunanetra mendapatkan materi aksesibel berkualitas tinggi.",
     openReviewQueue: "Buka Antrean Review",
     statPendingReview: "Menunggu Review",
     statUnreviewedSub: "berkas belum dibuka",
@@ -124,7 +124,7 @@ export const TRANSLATIONS = {
       "Sebagai volunteer kurator materi, fokus utama Anda adalah kualitas konten semantik dokumen. Harap perhatikan 4 aspek berikut saat melakukan peninjauan:",
     rule1Title: "1. Teks & Tabel Semantik",
     rule1Desc:
-      "Pastikan ejaan teks OCR akurat, heading tersusun runtut (H1–H3), dan sel baris/kolom tabel terbaca berurutan.",
+      "Pastikan ejaan teks bacaan hasil pindai akurat, heading tersusun runtut (H1–H3), dan sel baris/kolom tabel terbaca berurutan.",
     rule2Title: "2. Deskripsi Visual Figur",
     rule2Desc:
       "Periksa deskripsi gambar hasil vision AI agar mahasiswa tunanetra memahami informasi visual grafik atau diagram.",
@@ -154,8 +154,8 @@ export const TRANSLATIONS = {
     coursesUploadAction: "Unggah Materi Baru",
     allCourses: "Semua Mata Kuliah",
     uploadPdfMaterial: "Unggah Materi PDF",
-    scanPageTitle: "Scan PDF Mata Kuliah",
-    scanPageDesc: "Pindai berkas PDF materi kuliah menjadi dokumen terstruktur dengan MathML dan narasi suara. Setelah dipindai, Anda dapat langsung membacanya atau membagikannya ke mata kuliah.",
+    scanPageTitle: "Pindai Materi Kuliah",
+    scanPageDesc: "Pindai berkas PDF materi kuliah menjadi dokumen bacaan terstruktur dengan rumus matematika interaktif dan narasi suara. Setelah dipindai, Anda dapat langsung membacanya atau membagikannya ke kelas.",
     readerEmptyTitle: "Belum ada dokumen untuk dibaca",
     readerEmptyDesc: "Unggah berkas PDF perkuliahan atau buka salah satu mata kuliah untuk mulai membaca.",
     readerUploadAction: "Unggah PDF Kuliah",
@@ -247,7 +247,7 @@ export const TRANSLATIONS = {
     feature4Title: "Materi Terverifikasi Se-Kelas",
     feature4Category: "Peer Volunteer QA",
     feature4Desc:
-      "Volunteer memvalidasi keakuratan OCR dan rumus sekali, lalu seluruh mahasiswa sekelas langsung memakainya dengan pelacakan versi.",
+      "Volunteer memvalidasi keakuratan teks bacaan dan rumus sekali, lalu seluruh mahasiswa sekelas langsung memakainya dengan pelacakan versi.",
     feature4Cta: "Buka Course Library",
 
     // Marketing Quote & Testimonials
@@ -457,7 +457,7 @@ export const TRANSLATIONS = {
     // Volunteer Dashboard
     volunteerBadge: "Volunteer & Content Curator Workspace",
     volunteerGreetingDesc:
-      "Your focus is verifying OCR text accuracy, visual diagram descriptions, and MathML formulas so blind students receive high-quality accessible materials.",
+      "Your focus is verifying text accuracy, visual diagram descriptions, and MathML formulas so blind students receive high-quality accessible materials.",
     openReviewQueue: "Open Review Queue",
     statPendingReview: "Pending Review",
     statUnreviewedSub: "files unreviewed",
@@ -472,7 +472,7 @@ export const TRANSLATIONS = {
       "As a volunteer material curator, your primary focus is semantic document quality. Please observe the following 4 aspects during review:",
     rule1Title: "1. Semantic Text & Tables",
     rule1Desc:
-      "Ensure OCR text spelling is accurate, headings are hierarchically structured (H1–H3), and table rows/columns are sequential.",
+      "Ensure scanned text spelling is accurate, headings are hierarchically structured (H1–H3), and table rows/columns are sequential.",
     rule2Title: "2. Visual Figure Descriptions",
     rule2Desc:
       "Verify AI vision diagram descriptions so blind students clearly grasp graphic or flowchart information.",
@@ -502,8 +502,8 @@ export const TRANSLATIONS = {
     coursesUploadAction: "Upload New Material",
     allCourses: "All Courses",
     uploadPdfMaterial: "Upload PDF Material",
-    scanPageTitle: "Scan Course PDF",
-    scanPageDesc: "Scan course PDF files into structured materials with MathML and voice narration. Once scanned, you can immediately read or share them with your class.",
+    scanPageTitle: "Scan Course Material",
+    scanPageDesc: "Scan course PDF files into structured materials with interactive math and voice narration. Once scanned, you can immediately read or share them with your class.",
     readerEmptyTitle: "No documents ready to read",
     readerEmptyDesc: "Upload lecture PDF files or select a course to start reading.",
     readerUploadAction: "Upload Course PDF",
@@ -595,7 +595,7 @@ export const TRANSLATIONS = {
     feature4Title: "Class-Verified Materials",
     feature4Category: "Peer Volunteer QA",
     feature4Desc:
-      "Volunteers validate OCR and formula accuracy once, and all classmates instantly access it with source version tracking.",
+      "Volunteers validate text and formula accuracy once, and all classmates instantly access it with source version tracking.",
     feature4Cta: "Open Course Library",
 
     // Marketing Quote & Testimonials

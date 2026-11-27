@@ -53,7 +53,7 @@ export async function POST(req: Request) {
 
     if (!rate.allowed) {
       return NextResponse.json(
-        { error: "Terlalu banyak permintaan OCR. Silakan coba kembali dalam 1 menit." },
+        { error: "Terlalu banyak permintaan pemindaian materi. Silakan coba kembali dalam 1 menit." },
         { status: 429 }
       );
     }
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     let pdfBuffer: Buffer | null = null;
     let courseId = "cs-201";
     let language: "id" | "en" = "id";
-    let documentTitle = "Hasil Pindai Dokumen OCR";
+    let documentTitle = "Hasil Pindai Materi Kuliah";
 
     const contentType = req.headers.get("content-type") ?? "";
 
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
         }
         courseId = String(formData.get("courseId") ?? "cs-201");
         language = String(formData.get("language") ?? "id") as "id" | "en";
-        documentTitle = String(formData.get("title") ?? "Hasil Pindai Dokumen OCR");
+        documentTitle = String(formData.get("title") ?? "Hasil Pindai Materi Kuliah");
 
         if (file instanceof File) {
           const lowerName = file.name.toLowerCase();
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
             return NextResponse.json(
               {
                 error:
-                  "Hanya berkas dokumen berformat PDF (.pdf) yang diperbolehkan untuk pemindaian OCR.",
+                  "Hanya berkas dokumen berformat PDF (.pdf) yang diperbolehkan untuk pemindaian materi kuliah.",
               },
               { status: 400 }
             );
@@ -125,7 +125,7 @@ export async function POST(req: Request) {
         storagePath = json.storagePath?.trim() || null;
         courseId = json.courseId ?? "cs-201";
         language = json.language ?? "id";
-        documentTitle = json.title ?? "Hasil Pindai Dokumen OCR";
+        documentTitle = json.title ?? "Hasil Pindai Materi Kuliah";
       }
     } catch (bodyErr) {
       console.error("[OCR Scan Route] Failed to read request body:", bodyErr);
@@ -165,7 +165,7 @@ export async function POST(req: Request) {
 
     if (!imageBase64) {
       return NextResponse.json(
-        { error: "Berkas dokumen PDF diperlukan untuk menjalankan pemindaian OCR." },
+        { error: "Berkas dokumen PDF materi kuliah diperlukan untuk menjalankan pemindaian." },
         { status: 400 }
       );
     }
@@ -180,7 +180,7 @@ export async function POST(req: Request) {
 
     if (!isPdfPayload) {
       return NextResponse.json(
-        { error: "Format tidak didukung. Fitur OCR hanya menerima berkas dokumen berformat PDF (.pdf)." },
+        { error: "Format tidak didukung. Hanya menerima berkas materi kuliah berformat PDF (.pdf)." },
         { status: 400 }
       );
     }
@@ -254,12 +254,13 @@ export async function POST(req: Request) {
     const isGenericOrFilename =
       !rawPassedTitle ||
       rawPassedTitle === "Hasil Pindai Dokumen OCR" ||
+      rawPassedTitle === "Hasil Pindai Materi Kuliah" ||
       rawPassedTitle.toLowerCase().endsWith(".pdf");
 
     const resolvedDocumentTitle =
       (!isGenericOrFilename && rawPassedTitle.length > 0)
         ? rawPassedTitle
-        : (detectedPdfTitle || rawPassedTitle.replace(/\.pdf$/i, "") || "Hasil Pindai Dokumen OCR");
+        : (detectedPdfTitle || rawPassedTitle.replace(/\.pdf$/i, "") || "Hasil Pindai Materi Kuliah");
 
     // Enrich blocks with MathML and Speech Narration
     const enrichedBlocks: ExtractedBlockOutput[] = rawBlocks.map((block) => {
@@ -284,15 +285,21 @@ export async function POST(req: Request) {
       }
 
       if (block.blockType === "table") {
+        const normalizedHeaders = block.tableHeaders?.map((h) => normalizeMarkdownText(h));
+        const normalizedRows = block.tableRows?.map((row) =>
+          row.map((cell) => normalizeMarkdownText(cell))
+        );
         const tableSpoken = narrateTableBlock(
           normalizedText,
-          block.tableHeaders,
-          block.tableRows,
+          normalizedHeaders ?? block.tableHeaders,
+          normalizedRows ?? block.tableRows,
           language
         );
         return {
           ...block,
           contentText: normalizedText,
+          tableHeaders: normalizedHeaders ?? block.tableHeaders,
+          tableRows: normalizedRows ?? block.tableRows,
           spokenText: tableSpoken,
         };
       }
