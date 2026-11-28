@@ -12,6 +12,7 @@ import {
   Headphones,
   List,
   Loader2,
+  RotateCw,
   ScanText,
   Sparkles,
   Square,
@@ -116,6 +117,7 @@ export function OcrDocumentScanner({
   const [documentTitle, setDocumentTitle] = useState("");
   const [isCustomTitle, setIsCustomTitle] = useState(false);
   const [selectedPdfFile, setSelectedPdfFile] = useState<File | null>(null);
+  const [isCurrentFileScanned, setIsCurrentFileScanned] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanStageMessage, setScanStageMessage] = useState("");
@@ -181,6 +183,7 @@ export function OcrDocumentScanner({
   const clearSelection = () => {
     setSelectedPdfFile(null);
     setScanResult(null);
+    setIsCurrentFileScanned(false);
     setDocumentTitle("");
     setIsCustomTitle(false);
     setHasShared(false);
@@ -201,6 +204,7 @@ export function OcrDocumentScanner({
       progressTimerRef.current = null;
     }
     setScanning(false);
+    setIsCurrentFileScanned(false);
     setScanProgress(0);
     setScanStageMessage("");
     announce("Pemindaian dibatalkan.", "polite");
@@ -210,6 +214,7 @@ export function OcrDocumentScanner({
     if (!file) return;
     setErrorMessage(null);
     setScanResult(null);
+    setIsCurrentFileScanned(false);
     setDocumentTitle("");
     setIsCustomTitle(false);
     setScanProgress(0);
@@ -395,6 +400,7 @@ export function OcrDocumentScanner({
 
       setTimeout(() => {
         setScanResult(data);
+        setIsCurrentFileScanned(true);
         if (data.documentTitle) {
           setDocumentTitle(data.documentTitle);
           setIsCustomTitle(false);
@@ -406,6 +412,7 @@ export function OcrDocumentScanner({
         );
       }, 350);
     } catch (err) {
+      setIsCurrentFileScanned(false);
       if (progressTimerRef.current) {
         clearInterval(progressTimerRef.current);
         progressTimerRef.current = null;
@@ -724,6 +731,9 @@ export function OcrDocumentScanner({
             accept=".pdf,application/pdf"
             aria-label={isEn ? "Choose PDF file to scan" : "Pilih berkas PDF untuk dipindai cepat"}
             className="sr-only"
+            onClick={(e) => {
+              (e.target as HTMLInputElement).value = "";
+            }}
             onChange={(e) => void handleFileSelect(e.target.files?.[0])}
           />
 
@@ -772,7 +782,12 @@ export function OcrDocumentScanner({
                     variant="outline"
                     size="sm"
                     disabled={scanning}
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = "";
+                      }
+                      fileInputRef.current?.click();
+                    }}
                     className="min-h-10 rounded-full px-4 text-xs"
                   >
                     Ganti berkas
@@ -871,31 +886,51 @@ export function OcrDocumentScanner({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 font-ui">
-          {scanning && (
+        {isCurrentFileScanned && !scanning ? (
+          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 font-ui pt-1">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 border border-primary/25 rounded-full px-3.5 py-2 shadow-2xs">
+              <CheckCircle2 className="size-3.5 text-primary" aria-hidden="true" />
+              Materi berkas ini telah selesai dipindai
+            </span>
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={cancelScan}
-              className="min-h-10 rounded-full px-4 text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-              aria-label="Batalkan pemindaian materi"
+              onClick={() => setIsCurrentFileScanned(false)}
+              className="min-h-9 rounded-full px-3.5 text-xs text-muted-foreground hover:text-foreground"
+              aria-label="Tampilkan kembali tombol pemindaian untuk berkas ini"
             >
-              <X className="size-4 mr-1.5" aria-hidden="true" />
-              Batalkan
+              <RotateCw className="size-3.5 mr-1.5" aria-hidden="true" />
+              Pindai ulang berkas ini
             </Button>
-          )}
-          <Button
-            type="button"
-            size="lg"
-            disabled={!selectedPdfFile || scanning}
-            onClick={executeOcrScan}
-            className="min-h-11 rounded-full px-6 text-sm font-semibold shadow-xs"
-          >
-            {!scanning && <ScanText className="size-4 mr-2" aria-hidden="true" />}
-            <span>{scanning ? `Memindai (${scanProgress}%)…` : "Mulai Pindai Materi Kuliah"}</span>
-          </Button>
-        </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-end gap-2 font-ui">
+            {scanning && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={cancelScan}
+                className="min-h-10 rounded-full px-4 text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                aria-label="Batalkan pemindaian materi"
+              >
+                <X className="size-4 mr-1.5" aria-hidden="true" />
+                Batalkan
+              </Button>
+            )}
+            <Button
+              type="button"
+              size="lg"
+              disabled={!selectedPdfFile || scanning}
+              onClick={executeOcrScan}
+              className="min-h-11 rounded-full px-6 text-sm font-semibold shadow-xs"
+            >
+              {!scanning && <ScanText className="size-4 mr-2" aria-hidden="true" />}
+              <span>{scanning ? `Memindai (${scanProgress}%)…` : "Mulai Pindai Materi Kuliah"}</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {scanResult ? (
