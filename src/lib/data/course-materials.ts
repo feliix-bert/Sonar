@@ -25,7 +25,7 @@ export const SHARED_REVIEWED_MATERIALS: SharedReviewedMaterial[] = [
   {
     id: "doc-cs-01",
     courseId: "cs-201",
-    title: "Modul 04 — Binary Search Trees & AVL Balancing",
+    title: "Modul 04: Binary Search Trees & AVL Balancing",
     category: "Modul",
     sourceFilename: "CS201_Modul_04_BST_v2.1.pdf",
     sourceVersion: "v2.1",
@@ -45,7 +45,7 @@ export const SHARED_REVIEWED_MATERIALS: SharedReviewedMaterial[] = [
   {
     id: "doc-cs-02",
     courseId: "cs-201",
-    title: "Slide 07 — Graph Traversal: BFS dan DFS",
+    title: "Slide 07: Graph Traversal: BFS dan DFS",
     category: "Slide",
     sourceFilename: "CS201_Graph_BFS_DFS_v1.0.pdf",
     sourceVersion: "v1.0",
@@ -65,7 +65,7 @@ export const SHARED_REVIEWED_MATERIALS: SharedReviewedMaterial[] = [
   {
     id: "doc-math-01",
     courseId: "math-105",
-    title: "Bab 03 — Turunan Parsial, Gradien, dan Matriks Hessian",
+    title: "Bab 03: Turunan Parsial, Gradien, dan Matriks Hessian",
     category: "Modul",
     sourceFilename: "MATH105_Bab03_Turunan_Parsial_v1.2.pdf",
     sourceVersion: "v1.2",
@@ -107,7 +107,7 @@ export const SHARED_REVIEWED_MATERIALS: SharedReviewedMaterial[] = [
   {
     id: "doc-stat-01",
     courseId: "stat-210",
-    title: "Handout 02 — Distribusi Probabilitas Diskrit & Kontinu",
+    title: "Handout 02: Distribusi Probabilitas Diskrit & Kontinu",
     category: "Handout",
     sourceFilename: "STAT210_Distribusi_Probabilitas_v2.0.pdf",
     sourceVersion: "v2.0",

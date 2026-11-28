@@ -37,15 +37,15 @@ export function initialsOf(name: string | null | undefined, fallback = "S"): str
 }
 
 /**
- * Separates structured unit prefixes (e.g. "Modul 04 — Judul") from the main
- * document title so lists read cleanly without em-dash clutter.
+ * Separates structured unit prefixes (e.g. "Modul 04: Judul") from the main
+ * document title so lists read cleanly without awkward dash clutter.
  */
 export function splitDocumentTitle(rawTitle: string): {
   prefix: string | null;
   title: string;
 } {
   const trimmed = rawTitle.trim();
-  const parts = trimmed.split(/\s+[—–]\s+/);
+  const parts = trimmed.split(/\s+[—–:]\s+/);
   if (parts.length >= 2 && parts[0].length <= 28) {
     return {
       prefix: parts[0],

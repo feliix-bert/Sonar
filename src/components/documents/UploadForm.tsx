@@ -227,7 +227,7 @@ export function UploadForm({
             <SelectContent className="rounded-xl border border-border bg-popover shadow-md">
               {courses.map((c) => (
                 <SelectItem key={c.id} value={c.id} className="rounded-lg text-sm">
-                  {c.code} — {c.title}
+                  {c.code}: {c.title}
                 </SelectItem>
               ))}
             </SelectContent>

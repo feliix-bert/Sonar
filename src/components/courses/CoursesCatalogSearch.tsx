@@ -169,7 +169,7 @@ export function CoursesCatalogSearch({
               </SelectTrigger>
               <SelectContent className="rounded-2xl border border-border bg-popover shadow-md font-ui">
                 <SelectItem value="all" className="rounded-lg text-sm cursor-pointer py-2 font-medium">
-                  {isEn ? `All Disciplines (${courses.length})` : `Semua Bidang (${courses.length})`}
+                  {isEn ? `All Disciplines (${courses.length})` : `Semua (${courses.length})`}
                 </SelectItem>
                 {disciplines.map((disc) => {
                   const count = courses.filter(

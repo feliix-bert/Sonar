@@ -105,7 +105,7 @@ export function CommandMenu({
                   <div className="flex items-center gap-2 truncate">
                     <BookOpen className="size-4 shrink-0 text-primary" aria-hidden="true" />
                     <span className="font-semibold text-foreground">{course.code}</span>
-                    <span className="truncate text-muted-foreground">— {course.title}</span>
+                    <span className="truncate text-muted-foreground">: {course.title}</span>
                   </div>
                   <span className="text-xs text-muted-foreground shrink-0 ml-2">
                     {course.discipline}

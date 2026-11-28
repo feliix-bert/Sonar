@@ -463,7 +463,7 @@ export function OcrDocumentScanner({
         clearInterval(progressTimerRef.current);
         progressTimerRef.current = null;
       }
-      // User-initiated cancellation — don't show an error
+      // User-initiated cancellation: don't show an error
       if (err instanceof DOMException && err.name === "AbortError") {
         return;
       }
@@ -572,7 +572,7 @@ export function OcrDocumentScanner({
 
       const selectedCourseObj = courses.find((c) => c.id === courseId);
       const successMsg = `Dokumen berhasil disimpan & dibagikan ke ${
-        selectedCourseObj ? selectedCourseObj.code + " — " + selectedCourseObj.title : "mata kuliah"
+        selectedCourseObj ? selectedCourseObj.code + ": " + selectedCourseObj.title : "mata kuliah"
       }.`;
       setShareSuccessMessage(successMsg);
       setHasShared(true);
@@ -614,7 +614,7 @@ export function OcrDocumentScanner({
               <SelectContent className="rounded-xl border border-border bg-popover shadow-md">
                 {courses.map((course) => (
                   <SelectItem key={course.id} value={course.id} className="rounded-lg text-sm">
-                    {course.code} — {course.title}
+                    {course.code}: {course.title}
                   </SelectItem>
                 ))}
               </SelectContent>

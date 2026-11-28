@@ -271,7 +271,7 @@ export function HeaderUserMenu({
   );
 }
 
-/** Renders account nav links with active state — must stay inside a Suspense boundary. */
+/** Renders account nav links with active state: must stay inside a Suspense boundary. */
 function AccountNavItemsInner() {
   const pathname = usePathname();
   return <NavListItems items={ACCOUNT_ITEMS} pathname={pathname} />;

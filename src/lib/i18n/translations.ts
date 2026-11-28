@@ -169,7 +169,7 @@ export const TRANSLATIONS = {
     chooseCourse: "Pilih mata kuliah",
     narrationLanguage: "Bahasa narasi",
     readingTitle: "Judul bacaan",
-    readingTitlePlaceholder: "Misalnya: Bab 04 — Vektor",
+    readingTitlePlaceholder: "Misalnya: Bab 04: Vektor",
     chooseScannedPdf: "Pilih berkas PDF hasil pindai",
     choosePdfSub: "Ekstraksi teks, rumus MathML, dan tabel langsung untuk dibaca atau didengarkan.",
     selectPdfBtn: "Pilih Berkas PDF",
@@ -228,7 +228,7 @@ export const TRANSLATIONS = {
     featuresTag: "Kemampuan Inti SONAR",
     featuresHeading: "Mengubah materi visual kompleks menjadi narasi akademik yang jernih",
     featuresSubtitle:
-      "Setiap PDF perkuliahan—teks scan, tabel data, rumus diferensial, hingga grafik—dipulihkan menjadi struktur semantik yang utuh.",
+      "Setiap PDF materi kuliah, mulai dari teks scan, tabel data, rumus diferensial, hingga grafik, dipulihkan menjadi struktur bacaan yang rapi dan aksesibel.",
     feature1Title: "Audio Reader & Narasi Sinkron",
     feature1Category: "Screen Reader First",
     feature1Desc:
@@ -312,7 +312,7 @@ export const TRANSLATIONS = {
     sandboxPause: "Jeda",
     sandboxStopSpeech: "Hentikan pemutaran suara",
     sandboxTableColScope: "Screen reader membacakan header baris dan kolom secara eksplisit menggunakan native",
-    sandboxTableCaption: "Tabel 1 — Ringkasan Elastisitas & Pendapatan Triwulanan (ECON-110)",
+    sandboxTableCaption: "Tabel 1: Ringkasan Elastisitas & Pendapatan Triwulanan (ECON-110)",
     sandboxQuarter: "Kuartal",
     sandboxPriceElasticity: "Elastisitas Harga",
     sandboxUnitDemand: "Permintaan Unit",
@@ -322,7 +322,7 @@ export const TRANSLATIONS = {
     sandboxFigureAxes: "2. Sumbu & Satuan",
     sandboxFigureTrends: "3. Tren Utama",
     sandboxFigureUncertainty: "4. Catatan Ketidakpastian",
-    sandboxFigureCaption: "Gambar 3.2 — Kurva Potensial Membran Aksi (BIO-204)",
+    sandboxFigureCaption: "Gambar 3.2: Kurva Potensial Membran Aksi (BIO-204)",
     sandboxFigDescSummary:
       "Grafik garis menunjukkan potensial membran neuron bertransisi dari keadaan istirahat (-70 mV) melalui depolarisasi cepat ke +35 mV, diikuti oleh repolarisasi dan hiperpolarisasi singkat.",
     sandboxFigDescAxes:
@@ -345,7 +345,7 @@ export const TRANSLATIONS = {
     footerCopyright: "© 2026 SONAR. Materi kuliah yang dapat diakses semua mahasiswa.",
     footerWcag: "Dirancang untuk WCAG 2.2 Level AA",
     footerNavAria: "Tautan footer",
-    footerHomeAria: "SONAR — kembali ke beranda",
+    footerHomeAria: "SONAR, kembali ke beranda",
   },
   en: {
     // Header & Navigation
@@ -517,7 +517,7 @@ export const TRANSLATIONS = {
     chooseCourse: "Choose course",
     narrationLanguage: "Narration language",
     readingTitle: "Document title",
-    readingTitlePlaceholder: "e.g. Chapter 04 — Vectors",
+    readingTitlePlaceholder: "e.g. Chapter 04: Vectors",
     chooseScannedPdf: "Select scanned PDF document",
     choosePdfSub: "Extract text, MathML formulas, and tables to read or listen immediately.",
     selectPdfBtn: "Choose PDF File",
@@ -576,7 +576,7 @@ export const TRANSLATIONS = {
     featuresTag: "SONAR Core Capabilities",
     featuresHeading: "Transforming complex visual materials into clear academic narration",
     featuresSubtitle:
-      "Every lecture PDF—scanned text, data tables, differential equations, and figures—is restored into full semantic structure.",
+      "Every lecture PDF, including scanned text, data tables, differential equations, and figures, is restored into a clear, accessible semantic structure.",
     feature1Title: "Synchronized Audio Reader",
     feature1Category: "Screen Reader First",
     feature1Desc:
@@ -660,7 +660,7 @@ export const TRANSLATIONS = {
     sandboxPause: "Pause",
     sandboxStopSpeech: "Stop speech playback",
     sandboxTableColScope: "Screen readers announce explicit row and column headers using native",
-    sandboxTableCaption: "Table 1 — Quarterly Elasticity & Revenue Summary (ECON-110)",
+    sandboxTableCaption: "Table 1: Quarterly Elasticity & Revenue Summary (ECON-110)",
     sandboxQuarter: "Quarter",
     sandboxPriceElasticity: "Price Elasticity",
     sandboxUnitDemand: "Unit Demand",
@@ -670,7 +670,7 @@ export const TRANSLATIONS = {
     sandboxFigureAxes: "2. Axes & Units",
     sandboxFigureTrends: "3. Key Trends",
     sandboxFigureUncertainty: "4. Uncertainty Notes",
-    sandboxFigureCaption: "Figure 3.2 — Action Potential Membrane Voltage Curve (BIO-204)",
+    sandboxFigureCaption: "Figure 3.2: Action Potential Membrane Voltage Curve (BIO-204)",
     sandboxFigDescSummary:
       "Line graph showing neuron membrane potential transitioning from resting state (-70 mV) through rapid depolarization to +35 mV, followed by repolarization and brief hyperpolarization.",
     sandboxFigDescAxes:
@@ -693,7 +693,7 @@ export const TRANSLATIONS = {
     footerCopyright: "© 2026 SONAR. Accessible academic materials for every student.",
     footerWcag: "Designed for WCAG 2.2 Level AA",
     footerNavAria: "Footer navigation",
-    footerHomeAria: "SONAR — back to homepage",
+    footerHomeAria: "SONAR, back to homepage",
   },
 } as const;
 

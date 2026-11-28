@@ -177,7 +177,7 @@ export default function LandingPage() {
       <SiteHeader />
 
       <main id="main-content" tabIndex={-1} className="flex-1 outline-none">
-        {/* HERO SECTION — Enlango-inspired editorial split with SONAR 8-color palette */}
+        {/* HERO SECTION: Enlango-inspired editorial split with SONAR 8-color palette */}
         <section
           ref={heroRef}
           aria-labelledby="hero-heading"

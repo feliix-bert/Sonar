@@ -44,7 +44,7 @@ async function ReaderIndexBody() {
     <AccessibleReaderStudio
       document={detail.document}
       courseLabel={
-        detail.course ? `${detail.course.code} — ${detail.course.title}` : undefined
+        detail.course ? `${detail.course.code}: ${detail.course.title}` : undefined
       }
       blocks={detail.blocks}
       tables={detail.tables}

@@ -258,7 +258,7 @@ function generateFallbackOcrBlocks(input: OcrPageInput): ExtractedBlockOutput[] 
       {
         blockType: "heading",
         headingLevel: 2,
-        contentText: "Modul 04 — Binary Search Trees & AVL Balancing",
+        contentText: "Modul 04: Binary Search Trees & AVL Balancing",
         confidence: 0.99,
       },
       {
@@ -299,8 +299,8 @@ function generateFallbackOcrBlocks(input: OcrPageInput): ExtractedBlockOutput[] 
       blockType: "heading",
       headingLevel: 2,
       contentText: isMath
-        ? "Bab 03 — Turunan Parsial dan Matriks Hessian"
-        : "Catatan Kuliah — Analisis Matriks dan Kalkulus Lanjutan",
+        ? "Bab 03: Turunan Parsial dan Matriks Hessian"
+        : "Catatan Kuliah: Analisis Matriks dan Kalkulus Lanjutan",
       confidence: 0.99,
     },
     {

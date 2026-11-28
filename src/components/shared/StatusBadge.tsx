@@ -33,13 +33,13 @@ const STATUS_MAP: Record<
     icon: CheckCircle2,
   },
   unreviewed: {
-    label: "AI Draft — Unverified",
+    label: "AI Draft (Unverified)",
     className:
       "border-warning/40 bg-warning/12 text-warning dark:border-warning/45 dark:bg-warning/18",
     icon: Sparkles,
   },
   ai_draft: {
-    label: "Auto-Generated — Unverified",
+    label: "Auto-Generated (Unverified)",
     className:
       "border-warning/40 bg-warning/12 text-warning dark:border-warning/45 dark:bg-warning/18",
     icon: Sparkles,

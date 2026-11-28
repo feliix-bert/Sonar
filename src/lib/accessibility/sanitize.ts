@@ -70,7 +70,7 @@ const ALLOWED_ATTRS = new Set([
 /**
  * Sanitizes document HTML and MathML derived from PDF extraction or AI responses
  * to prevent XSS while preserving screen-reader semantics and MathML structure.
- * Zero external dependencies — 100% safe inside Serverless (AWS Lambda) and browser runtimes.
+ * Zero external dependencies: 100% safe inside Serverless (AWS Lambda) and browser runtimes.
  */
 export function sanitizeDocumentHtml(unsafeHtml: string): string {
   if (!unsafeHtml) return "";

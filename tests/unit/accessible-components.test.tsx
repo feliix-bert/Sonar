@@ -29,7 +29,7 @@ describe("SONAR Accessible Components", () => {
     expect(screen.getByText("Verified by Reviewer")).toBeInTheDocument();
 
     rerender(<StatusBadge status="unreviewed" />);
-    expect(screen.getByText("AI Draft — Unverified")).toBeInTheDocument();
+    expect(screen.getByText("AI Draft (Unverified)")).toBeInTheDocument();
   });
 
   it("exposes polite and assertive live regions and announces messages", async () => {

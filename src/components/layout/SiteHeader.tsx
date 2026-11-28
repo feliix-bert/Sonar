@@ -169,7 +169,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 rounded-2xl bg-card/90 px-3 shadow-nav backdrop-blur-xl sm:h-16 sm:px-4">
         <Link
           href="/"
-          aria-label="SONAR — kembali ke beranda"
+          aria-label="SONAR, kembali ke beranda"
           className="inline-flex shrink-0 items-center rounded-lg py-1 pr-1 outline-none focus-visible:outline-2 focus-visible:outline-ring"
         >
           <span className="sm:hidden">

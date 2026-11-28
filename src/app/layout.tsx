@@ -33,7 +33,7 @@ const atkinson = Atkinson_Hyperlegible({
 
 export const metadata: Metadata = {
   title: {
-    default: "SONAR — Accessible Course Materials for Blind Students",
+    default: "SONAR | Accessible Course Materials for Blind Students",
     template: "%s | SONAR",
   },
   description:

@@ -59,7 +59,7 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
 
-  /* Fixed brand palette — identical in light and dark. Always pair fills with
+  /* Fixed brand palette: identical in light and dark. Always pair fills with
      brand-ink text (or white on brand-teal / brand-blue-strong). */
   --color-brand-teal: var(--brand-teal);
   --color-brand-aqua: var(--brand-aqua);
@@ -100,7 +100,7 @@
 }
 
 /* ==========================================================================
-   SONAR Design Tokens — Brand Palette (WCAG 2.2 AA verified pairs)
+   SONAR Design Tokens: Brand Palette (WCAG 2.2 AA verified pairs)
    #087E78 teal   · #39B9A7 aqua  · #668FE8 periwinkle · #F1A27E peach
    #F2D477 gold   · #E5F2EC mint  · #FAF8F2 paper      · #293B39 ink
 

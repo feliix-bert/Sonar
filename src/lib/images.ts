@@ -75,16 +75,16 @@ export const APP_IMAGES = {
   courseCS: {
     src: "/images/course_cs.jpg",
     alt: "Layar laptop menampilkan potongan kode pemrograman terstruktur di atas meja kerja dengan pencahayaan kontras yang jelas.",
-    caption: "CS 201 — Struktur Data dan Algoritma",
+    caption: "CS 201: Struktur Data dan Algoritma",
   },
   courseMath: {
     src: "/images/course_math.jpg",
     alt: "Ilustrasi papan tulis akademis berisi grafik vektor ruang, koordinat kartesius, dan persamaan matematika kalkulus multivariabel.",
-    caption: "MATH 105 — Kalkulus Multivariabel & Aljabar Linier",
+    caption: "MATH 105: Kalkulus Multivariabel & Aljabar Linier",
   },
   courseStat: {
     src: "/images/course_stat.jpg",
     alt: "Layar tablet menampilkan grafik garis tren dan diagram lingkaran distribusi data statistik dengan label angka yang terukur.",
-    caption: "STAT 210 — Teori Probabilitas & Inferensi Statistik",
+    caption: "STAT 210: Teori Probabilitas & Inferensi Statistik",
   },
 } as const;

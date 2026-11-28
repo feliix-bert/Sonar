@@ -232,7 +232,7 @@ export function answerFromDocumentBlocks(
       block.block_type === "figure" && fig?.summary
         ? fig.summary
         : block.block_type === "equation" && eq?.narration_id
-          ? `${block.content_text} — ${language === "id" ? eq.narration_id : eq.narration_en}`
+          ? `${block.content_text} (${language === "id" ? eq.narration_id : eq.narration_en})`
           : block.content_text;
     const trimmed =
       detailText.length > 260 ? `${detailText.slice(0, 257)}…` : detailText;

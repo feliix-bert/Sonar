@@ -533,7 +533,7 @@ export function AccessibleReaderStudio({
     window.speechSynthesis.speak(utter);
   };
 
-  const courseShort = courseLabel ? courseLabel.split("—")[0].trim() : "Mata Kuliah";
+  const courseShort = courseLabel ? courseLabel.split(/[:—–]/)[0].trim() : "Mata Kuliah";
 
   const outlinePanelBody = (
     <div className="flex min-h-0 flex-1 flex-col font-ui">

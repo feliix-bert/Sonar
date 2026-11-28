@@ -353,7 +353,7 @@ export function PreferencesForm({
         </div>
       </Panel>
 
-      {/* Action buttons — grouped on the left */}
+      {/* Action buttons: grouped on the left */}
       <div className="flex flex-wrap items-center justify-start gap-3 font-ui">
         <Button
           type="submit"

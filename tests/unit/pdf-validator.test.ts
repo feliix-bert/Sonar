@@ -6,7 +6,7 @@ describe("SONAR Server PDF Upload Validator", () => {
   it("validates document upload metadata with slug or UUID courseId", () => {
     const slugValid = documentUploadMetaSchema.safeParse({
       courseId: "cs-201",
-      title: "Bab 04 — Binary Search Trees",
+      title: "Bab 04: Binary Search Trees",
       language: "id",
     });
     expect(slugValid.success).toBe(true);
