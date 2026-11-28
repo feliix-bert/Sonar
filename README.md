@@ -14,7 +14,7 @@
     <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" /></a>
     <a href="https://tailwindcss.com"><img src="https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS v4" /></a>
     <a href="https://supabase.com"><img src="https://img.shields.io/badge/Supabase-Auth_%26_PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" /></a>
-    <a href="https://www.w3.org/WAI/standards-guidelines/wcag/"><img src="https://img.shields.io/badge/Accessibility-WCAG_2.2_AA-025952?style=for-the-badge&logo=w3c&logoColor=white" alt="WCAG 2.2 AA" /></a>
+    <img src="https://img.shields.io/badge/Accessibility-Screen_Reader_Ready-025952?style=for-the-badge&logo=w3c&logoColor=white" alt="Screen Reader Ready" />
   </p>
 </div>
 
@@ -82,7 +82,7 @@ Mahasiswa tunanetra dan *low vision* di perguruan tinggi sering mengalami hambat
 | **User Interface** | `Poppins` | Subheading, judul kartu, tombol (*button*), badges status, kontrol tab, dan chips interaktif. |
 | **Accessibility Reading** | `Atkinson Hyperlegible` | Mode membaca, canvas materi kuliah, pratinjau teks, dan konten pembelajaran beresolusi tinggi. |
 
-### Palet Warna Resmi (Lolos WCAG 2.2 AA)
+### Palet Warna Resmi (Kontras Tinggi & Ramah Aksesibilitas)
 * **Deep Teal (`#087E78`):** Warna primer identitas brand SONAR untuk tombol utama, tautan aktif, dan aksen fokus.
 * **Fresh Aqua (`#39B9A7`):** Aksen sekunder dinamis dan tombol primer pada dark mode.
 * **Periwinkle Blue (`#668FE8` / `#3D5FBF`):** Aksen highlight MathML, indikator sistem, dan peran administrator.
@@ -299,7 +299,7 @@ SONAR/
 
 ## 🛡️ Kebijakan Aksesibilitas & Keamanan
 
-* **Kesesuaian WCAG 2.2 Level AA:** Setiap rute aplikasi diuji secara berkala dengan `@axe-core/playwright`. Seluruh elemen interaktif memiliki label yang dapat diakses, kontras warna teruji, navigasi keyboard penuh, serta hierarki heading tunggal yang logis.
+* **Desain Ramah Pembaca Layar:** Seluruh elemen interaktif memiliki label yang dapat diakses, kontras warna teruji, navigasi keyboard penuh, serta hierarki heading tunggal yang logis.
 * **Screen Reader First:** Setiap tombol kontrol pemutar suara dan blok konten dilengkapi atribut ARIA yang tepat (`aria-live`, `aria-atomic`, `role="region"`, `role="status"`).
 * **Perlindungan Data Mahasiswa:** Akses materi perkuliahan terisolasi per mata kuliah dengan izin berbasis *Row-Level Security* (RLS). Mahasiswa hanya dapat mengakses materi pribadi atau materi bersama yang telah lolos peninjauan volunteer.
 

@@ -25,8 +25,8 @@ export default function AccessibilityStatementPage() {
           </h1>
           <p className="max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
             {isEn
-              ? "SONAR is engineered so reading, search, display adjustments, and review workflows can be operated independently via keyboard and screen readers adhering to WCAG 2.2 Level AA."
-              : "SONAR dirancang agar seluruh fungsi membaca, pencarian, pengaturan tampilan, dan peninjauan materi dapat dijalankan mandiri menggunakan keyboard dan pembaca layar sesuai standar WCAG 2.2 Level AA."}
+              ? "SONAR is engineered so reading, search, display adjustments, and review workflows can be operated independently via keyboard and screen readers."
+              : "SONAR dirancang agar seluruh fungsi membaca, pencarian, pengaturan tampilan, dan peninjauan materi dapat dijalankan mandiri menggunakan keyboard dan pembaca layar secara inklusif."}
           </p>
         </header>
 

@@ -51,7 +51,7 @@ const PRIMARY_LINKS: NavLink[] = [
 
 const INFO_LINKS = [
   { label: "Tentang SONAR", description: "Visi, misi, dan prinsip inklusif", href: "/about", icon: Info },
-  { label: "Pernyataan Aksesibilitas", description: "Komitmen WCAG 2.2 AA", href: "/accessibility", icon: ShieldCheck },
+  { label: "Pernyataan Aksesibilitas", description: "Komitmen aksesibilitas inklusif", href: "/accessibility", icon: ShieldCheck },
   { label: "Pusat Bantuan", description: "Panduan dan pertanyaan umum", href: "/help", icon: CircleHelp },
 ];
 
@@ -75,7 +75,7 @@ function getPrimaryNavLabel(href: string, defaultLabel: string, isEn: boolean) {
 function getInfoNavLabel(href: string, defaultLabel: string, defaultDesc: string, isEn: boolean) {
   if (!isEn) return { label: defaultLabel, description: defaultDesc };
   if (href === "/about") return { label: "About SONAR", description: "Vision, mission, and inclusivity" };
-  if (href === "/accessibility") return { label: "Accessibility Statement", description: "WCAG 2.2 AA commitment" };
+  if (href === "/accessibility") return { label: "Accessibility Statement", description: "Inclusive accessibility commitment" };
   if (href === "/help") return { label: "Help Center", description: "Guides and FAQ" };
   return { label: defaultLabel, description: defaultDesc };
 }
