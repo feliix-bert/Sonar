@@ -74,6 +74,7 @@ export function narrateMixedText(
     .replace(/\\pm\b/g, lang === "id" ? " plus minus " : " plus or minus ")
     .replace(/\\infty\b/g, lang === "id" ? " tak hingga " : " infinity ")
     .replace(/\\circ\b/g, lang === "id" ? " derajat " : " degrees ")
+    .replace(/\\dots\b|\\ldots\b|\\cdots\b/g, lang === "id" ? " titik-titik " : " and so on ")
     // Strip any remaining backslashes before words so speech synthesizer doesn't pronounce "backslash"
     .replace(/\\([a-zA-Z]+)/g, "$1")
     .replace(/[{}]/g, " ")

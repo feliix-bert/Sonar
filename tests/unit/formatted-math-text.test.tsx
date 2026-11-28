@@ -169,4 +169,47 @@ describe("FormattedMathText & KaTeX rendering", () => {
     expect(c3.querySelectorAll(".katex").length).toBe(8);
     expect(c3.querySelector(".katex-error")).toBeNull();
   });
+
+  it("renders Category D (Piecewise, Combinatorics, Math Text) OCR expressions cleanly", () => {
+    // Academic paragraph with finite set, dots, and binomial coefficients
+    const paragraph =
+      "Untuk setiap k \\in \\{0, 1, \\dots, n\\}, banyaknya cara memilih k objek dari n objek dinyatakan oleh \\binom{n}{k} = \\frac{n!}{k!(n-k)!} yang memenuhi sifat simetri \\binom{n}{k} = \\binom{n}{n-k}.";
+    const { container: cPara } = render(<FormattedMathText text={paragraph} as="div" />);
+    expect(cPara.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(3);
+    expect(cPara.querySelector(".katex-error")).toBeNull();
+    // Visual HTML text should contain rendered mathematical symbols, not unrendered backslashes
+    cPara.querySelectorAll(".katex-html").forEach((el) => {
+      expect(el.textContent).not.toContain("\\in");
+      expect(el.textContent).not.toContain("\\dots");
+      expect(el.textContent).not.toContain("\\binom");
+    });
+
+    // V-D01: Standalone math text operator \text{sgn}(x)
+    const vD01 = "S(x) (4 kondisi), \\text{sgn}(x) (3 kondisi)";
+    const { container: cD01 } = render(<FormattedMathText text={vD01} as="span" />);
+    expect(cD01.querySelector(".katex")).toBeInTheDocument();
+    expect(cD01.querySelector(".katex-error")).toBeNull();
+    cD01.querySelectorAll(".katex-html").forEach((el) => {
+      expect(el.textContent).not.toContain("\\text");
+    });
+
+    // V-D02: Standalone and chained binomial coefficients
+    const vD02 = "\\binom{n}{k}, \\binom{m+n}{r}";
+    const { container: cD02 } = render(<FormattedMathText text={vD02} as="span" />);
+    expect(cD02.querySelectorAll(".katex").length).toBe(2);
+    expect(cD02.querySelector(".katex-error")).toBeNull();
+    cD02.querySelectorAll(".katex-html").forEach((el) => {
+      expect(el.textContent).not.toContain("\\binom");
+    });
+
+    // V-D03: Math text environment and Greek function call
+    const vD03 = "Blok \\text{align*} & \\Psi_n (x) gabungan";
+    const { container: cD03 } = render(<FormattedMathText text={vD03} as="span" />);
+    expect(cD03.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(1);
+    expect(cD03.querySelector(".katex-error")).toBeNull();
+    cD03.querySelectorAll(".katex-html").forEach((el) => {
+      expect(el.textContent).not.toContain("\\text");
+      expect(el.textContent).not.toContain("\\Psi");
+    });
+  });
 });

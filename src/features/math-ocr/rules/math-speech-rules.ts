@@ -82,6 +82,7 @@ export const FUNCTION_RULES: Record<string, SpeechTranslation> = {
   "\\ker": { en: "kernel of", id: "kernel dari" },
   "\\hom": { en: "homomorphism of", id: "homomorfisme dari" },
   "\\arg": { en: "argument of", id: "argumen dari" },
+  "\\sgn": { en: "sign of", id: "fungsi tanda dari" },
 };
 
 /**

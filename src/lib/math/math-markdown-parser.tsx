@@ -48,10 +48,13 @@ export function autoWrapUnescapedMath(text: string): string {
     .replace(/^[ \t]*\|.+?\|[ \t]*$/gm, (m) => protect(m))
     .replace(mathRegex, (m) => protect(m));
 
-  // 1. Set notation: e.g. \{(x, y), L - 3 \le x \le L, 0 \le y \le W\} or \{(x, y) \in S, ...\}
+  // 1. Set notation: e.g. \{(x, y), L - 3 \le x \le L, 0 \le y \le W\} or \{(x, y) \in S, ...\} or \{0, 1, \dots, n\}
   workingText = workingText.replace(
-    /(?<![a-zA-Z0-9_\\])\\?\{((?:[^{}\n]|\{[^{}\n]*\})*?(?:\\in|\\le|\\ge|\\ne|\\subset|\\cup|\\cap|\\times|\^|_|=|\\varepsilon|\\alpha|\\beta|\\gamma|\\delta|\\theta|\\lambda|\\mu|\\pi|\\sigma|\\omega)(?:[^{}\n]|\{[^{}\n]*\})*?)\\?\}/g,
-    (_m, inner) => protect(`\\(\\{${inner}\\}\\)`)
+    /(?<![a-zA-Z0-9_\\])(?:\\\{((?:[^{}\n]|\{[^{}\n]*\})*?)\\\}|\\?\{((?:[^{}\n]|\{[^{}\n]*\})*?(?:\\in|\\le|\\ge|\\ne|\\subset|\\cup|\\cap|\\times|\^|_|=|\\dots|\\ldots|\\cdots|\\varepsilon|\\alpha|\\beta|\\gamma|\\delta|\\theta|\\lambda|\\mu|\\pi|\\sigma|\\omega)(?:[^{}\n]|\{[^{}\n]*\})*?)\\?\})/g,
+    (_m, inner1, inner2) => {
+      const inner = inner1 !== undefined ? inner1 : inner2;
+      return protect(`\\(\\{${inner}\\}\\)`);
+    }
   );
 
   // 2. Norms / Double vertical bar magnitudes, with optional fraction or single scalar prefix
@@ -155,7 +158,7 @@ export function autoWrapUnescapedMath(text: string): string {
     const match = workingText
       .slice(fracSearchIdx)
       .match(
-        /(?<![a-zA-Z0-9_\\])(?:(?:[a-zA-Z](?:\([a-zA-Z0-9,\s]+\)|'|_[0-9a-zA-Z]+|\^\{?[0-9a-zA-Z]+\}?)?\s*=\s*)?)(?:-?[0-9a-zA-Z\+\-\*\/]+\s*)?\\(?:frac|dfrac|tfrac)\s*\{/
+        /(?<![a-zA-Z0-9_\\])(?:(?:[a-zA-Z](?:\([a-zA-Z0-9,\s]+\)|'|_[0-9a-zA-Z]+|\^\{?[0-9a-zA-Z]+\}?)?\s*=\s*)?)(?:-?[0-9a-zA-Z\+\-\*\/]+\s*)?\\(?:frac|dfrac|tfrac|binom|dbinom|tbinom)\s*\{/
       );
     if (!match || match.index === undefined) break;
 
@@ -243,6 +246,12 @@ export function autoWrapUnescapedMath(text: string): string {
     (m) => protect(`\\(${m}\\)`)
   );
 
+  // 7b. Math text/environment/operator commands: e.g. \text{sgn}(x), \text{align*}, \operatorname{sgn}(x)
+  workingText = workingText.replace(
+    /(?<![a-zA-Z0-9_\\])\\(?:text|operatorname|mathrm|mathbf)\{[^{}\n]+\}(?:\s*\([a-zA-Z0-9_,\s\+\-]+\))?/g,
+    (m) => protect(`\\(${m.trim()}\\)`)
+  );
+
   // 8. Square roots, integrals, summations, limits: e.g. \sqrt{a_1^2 + a_2^2}, \sum_{i=1}^n
   workingText = workingText.replace(
     /(?<![a-zA-Z0-9_\\])\\(?:sqrt|sum|prod|int|iint|iiint|oint|lim)\b(?:_[^{}\n]+|_\{\s*[^{}\n]+\s*\})?(?:\^[^{}\n]+|\^\{\s*[^{}\n]+\s*\})?(?:\{[^{}\n]+\})?/g,
@@ -267,10 +276,10 @@ export function autoWrapUnescapedMath(text: string): string {
     return protect(`\\(${unwrapInnerPlaceholders(m.trim())}\\)`);
   });
 
-  // 11. Standalone Greek / LaTeX / Math / Set symbols with text or exponents:
-  // e.g. \cap, \cup, \in, \subset, \setminus, \emptyset, \varnothing, \infty, \partial, \nabla, \forall, \exists, \ne, \le, \ge, etc.
+  // 11. Standalone Greek / LaTeX / Math / Set symbols with text or exponents or function calls:
+  // e.g. \cap, \cup, \in, \subset, \setminus, \emptyset, \varnothing, \infty, \Psi_n (x), \forall, \exists, etc.
   workingText = workingText.replace(
-    /\\(?:cap|cup|in|notin|subset|subseteq|supset|supseteq|setminus|emptyset|varnothing|infty|partial|nabla|forall|exists|nexists|neg|aleph|hbar|pm|mp|times|div|cdot|circ|bullet|star|approx|sim|simeq|cong|equiv|propto|le|ge|ne|neq|leq|geq|ll|gg|to|rightarrow|leftarrow|Rightarrow|Leftarrow|Leftrightarrow|iff|implies|mapsto|land|lor|oplus|otimes|varepsilon|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Delta|Gamma|Theta|Lambda|Xi|Pi|Sigma|Phi|Psi|Omega)(?:\^[0-9a-zA-Z]+|\^\{[^}]+\}|_[0-9a-zA-Z]+|_{[^}]+})?(?:\s*\\text\{[^}]+\})?/g,
+    /\\(?:cap|cup|in|notin|subset|subseteq|supset|supseteq|setminus|emptyset|varnothing|infty|partial|nabla|forall|exists|nexists|neg|aleph|hbar|pm|mp|times|div|cdot|circ|bullet|star|approx|sim|simeq|cong|equiv|propto|le|ge|ne|neq|leq|geq|ll|gg|to|rightarrow|leftarrow|Rightarrow|Leftarrow|Leftrightarrow|iff|implies|mapsto|land|lor|oplus|otimes|varepsilon|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Delta|Gamma|Theta|Lambda|Xi|Pi|Sigma|Phi|Psi|Omega)(?:\^[0-9a-zA-Z]+|\^\{[^}]+\}|_[0-9a-zA-Z]+|_{[^}]+})?(?:\s*\([a-zA-Z0-9_,\s\+\-]+\))?(?:\s*\\text\{[^}]+\})?/g,
     (m) => protect(`\\(${m.trim()}\\)`)
   );
 
