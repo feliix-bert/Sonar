@@ -1,19 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useDropzone } from "react-dropzone";
 import {
   AlertCircle,
   Bot,
   CheckCircle2,
+  ExternalLink,
   FileText,
   FileUp,
   Headphones,
   List,
+  ListTree,
   Loader2,
+  MessageSquare,
+  Pause,
+  Play,
   RotateCw,
   ScanText,
+  SkipBack,
+  SkipForward,
   Sparkles,
   Square,
   Upload,
@@ -57,6 +64,8 @@ import { narrateMixedText, narrateTableBlock } from "@/features/math-ocr/math-na
 import { parseTableData, narrateTable } from "@/lib/accessibility/table-narration";
 import { ScanCompanionPanel } from "@/components/scanner/ScanCompanionPanel";
 import { useTranslation } from "@/lib/i18n/use-translation";
+import { useAudioReader, type AudioReadableBlock } from "@/features/audio/use-audio-reader";
+import { useAccessibilityStore } from "@/stores/accessibility-store";
 import type { CourseRow } from "@/lib/data/workspace";
 import type { ExtractedBlockOutput } from "@/features/ocr/ocr-provider";
 
@@ -105,7 +114,6 @@ export function OcrDocumentScanner({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const initialCourse =
     defaultCourseId && courses.some((c) => c.id === defaultCourseId)
@@ -126,10 +134,45 @@ export function OcrDocumentScanner({
   const [activePanel, setActivePanel] = useState<"outline" | "ai" | null>("outline");
   const [activeBlockIndex, setActiveBlockIndex] = useState<number | null>(null);
   const isXlDesktop = useIsXlDesktop();
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [currentlyPlayingIndex, setCurrentlyPlayingIndex] = useState<number | null>(
-    null
-  );
+  const [narrationSpeed, setNarrationSpeed] = useState(1);
+  const fontSizePx = useAccessibilityStore((s) => s.fontSizePx);
+  const setFontSizePx = useAccessibilityStore((s) => s.setFontSizePx);
+
+  const audioBlocks: AudioReadableBlock[] = useMemo(() => {
+    if (!scanResult) return [];
+    return scanResult.blocks.map((block, idx) => {
+      let spoken = block.spokenText || block.contentText;
+      if (block.blockType === "table") {
+        if (block.tableHeaders || block.tableRows) {
+          spoken = narrateTableBlock(block.contentText, block.tableHeaders, block.tableRows, language);
+        } else {
+          const parsed = parseTableData(null, null, block.contentText);
+          if (parsed.headers.length > 0 || parsed.rows.length > 0) {
+            spoken = narrateTable(parsed, language);
+          }
+        }
+      }
+      return {
+        id: `scan-block-${idx}`,
+        spokenText: spoken,
+        label: `Blok ${idx + 1}`,
+      };
+    });
+  }, [scanResult, language]);
+
+  const audio = useAudioReader({
+    blocks: audioBlocks,
+    rate: narrationSpeed,
+    language,
+    onBlockChange: (_id, index) => {
+      setActiveBlockIndex(index);
+      const el = window.document.getElementById(`scan-block-${index}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    },
+    onAnnounce: (msg) => announce(msg, "polite"),
+  });
 
   const togglePanel = (panel: "outline" | "ai") => {
     setActivePanel((prev) => {
@@ -181,6 +224,7 @@ export function OcrDocumentScanner({
   }, []);
 
   const clearSelection = () => {
+    audio.stop();
     setSelectedPdfFile(null);
     setScanResult(null);
     setIsCurrentFileScanned(false);
@@ -195,6 +239,7 @@ export function OcrDocumentScanner({
   };
 
   const cancelScan = () => {
+    audio.stop();
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -212,6 +257,7 @@ export function OcrDocumentScanner({
 
   const handleFileSelect = async (file: File | undefined) => {
     if (!file) return;
+    audio.stop();
     setErrorMessage(null);
     setScanResult(null);
     setIsCurrentFileScanned(false);
@@ -442,7 +488,7 @@ export function OcrDocumentScanner({
       return;
     }
 
-    stopAllAudio();
+    audio.stop();
     setLanguage(targetLang);
 
     // If cached in target language, use immediately
@@ -493,101 +539,6 @@ export function OcrDocumentScanner({
     } finally {
       setIsTranslating(false);
     }
-  };
-
-  const speakText = (text: string, blockIdx?: number) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      announce("Peramban tidak mendukung sintesis suara.", "assertive");
-      return;
-    }
-
-    if (isPlayingAudio && currentlyPlayingIndex === blockIdx) {
-      window.speechSynthesis.cancel();
-      currentUtteranceRef.current = null;
-      setIsPlayingAudio(false);
-      setCurrentlyPlayingIndex(null);
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-
-    const naturalSpokenText = narrateMixedText(text, language);
-    if (!naturalSpokenText.trim()) {
-      announce("Tidak ada konten suara untuk dibacakan.", "polite");
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(naturalSpokenText);
-    currentUtteranceRef.current = utterance;
-    utterance.lang = language === "id" ? "id-ID" : "en-US";
-    utterance.rate = 1.0;
-
-    try {
-      const voices = window.speechSynthesis.getVoices?.() || [];
-      const targetPrefix = language === "id" ? "id" : "en";
-      const matched = voices.find((v) =>
-        v.lang.toLowerCase().startsWith(targetPrefix)
-      );
-      if (matched) utterance.voice = matched;
-    } catch {
-      // fallback to system default voice
-    }
-
-    utterance.onstart = () => {
-      setIsPlayingAudio(true);
-      if (typeof blockIdx === "number") setCurrentlyPlayingIndex(blockIdx);
-    };
-    utterance.onend = () => {
-      currentUtteranceRef.current = null;
-      setIsPlayingAudio(false);
-      setCurrentlyPlayingIndex(null);
-    };
-    utterance.onerror = (e) => {
-      console.warn("[OcrDocumentScanner] Speech synthesis error:", e);
-      currentUtteranceRef.current = null;
-      setIsPlayingAudio(false);
-      setCurrentlyPlayingIndex(null);
-    };
-
-    // Chrome/Chromium workaround: small timeout ensures previous cancel() completes
-    setTimeout(() => {
-      try {
-        if (window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
-        }
-        window.speechSynthesis.speak(utterance);
-      } catch (err) {
-        console.error("[OcrDocumentScanner] Failed to speak utterance:", err);
-      }
-    }, 50);
-  };
-
-  const speakAllDocument = () => {
-    if (!scanResult || scanResult.blocks.length === 0) return;
-    const fullText = scanResult.blocks
-      .map((b) => {
-        if (b.blockType === "table") {
-          if (b.tableHeaders || b.tableRows) {
-            return narrateTableBlock(b.contentText, b.tableHeaders, b.tableRows, language);
-          }
-          const parsed = parseTableData(null, null, b.contentText);
-          if (parsed.headers.length > 0 || parsed.rows.length > 0) {
-            return narrateTable(parsed, language);
-          }
-        }
-        return narrateMixedText(b.spokenText || b.contentText, language);
-      })
-      .join(". ");
-    speakText(fullText, -1);
-  };
-
-  const stopAllAudio = () => {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-    currentUtteranceRef.current = null;
-    setIsPlayingAudio(false);
-    setCurrentlyPlayingIndex(null);
   };
 
   const handleShareWithCourse = async () => {
@@ -956,104 +907,78 @@ export function OcrDocumentScanner({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 font-ui">
+                <div className="flex flex-wrap items-center justify-start gap-2 font-ui">
                   <div
-                    className="flex items-center rounded-full border border-border bg-background/80 p-0.5 text-xs"
                     role="group"
-                    aria-label="Pilihan bahasa teks dokumen"
+                    aria-label={isEn ? "Reading font size" : "Ukuran huruf bacaan"}
+                    className="inline-flex items-center rounded-full border border-border bg-background p-0.5"
                   >
-                    <button
+                    <Button
                       type="button"
-                      disabled={isTranslating}
-                      onClick={() => handleSwitchLanguage("id")}
-                      className={cn(
-                        "flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition-colors disabled:opacity-50",
-                        language === "id"
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        const next = Math.max(14, fontSizePx - 1);
+                        setFontSizePx(next);
+                        announce(isEn ? `Font size ${next} pixels.` : `Ukuran huruf ${next} piksel.`);
+                      }}
+                      className="h-9 rounded-full px-3 text-xs font-semibold"
                     >
-                      {isTranslating && language !== "id" ? (
-                        <Loader2 className="size-3 animate-spin" aria-hidden="true" />
-                      ) : null}
-                      <span>Indonesia</span>
-                    </button>
-                    <button
+                      <span aria-hidden="true">A−</span>
+                      <span className="sr-only">{isEn ? "Decrease font size" : "Perkecil ukuran teks"}</span>
+                    </Button>
+                    <span className="px-1 text-xs tabular-nums text-muted-foreground">
+                      {fontSizePx}
+                    </span>
+                    <Button
                       type="button"
-                      disabled={isTranslating}
-                      onClick={() => handleSwitchLanguage("en")}
-                      className={cn(
-                        "flex items-center gap-1 rounded-full px-3 py-1 font-semibold transition-colors disabled:opacity-50",
-                        language === "en"
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        const next = Math.min(28, fontSizePx + 1);
+                        setFontSizePx(next);
+                        announce(isEn ? `Font size ${next} pixels.` : `Ukuran huruf ${next} piksel.`);
+                      }}
+                      className="h-9 rounded-full px-3 text-xs font-semibold"
                     >
-                      {isTranslating && language !== "en" ? (
-                        <Loader2 className="size-3 animate-spin" aria-hidden="true" />
-                      ) : null}
-                      <span>English</span>
-                    </button>
+                      <span aria-hidden="true">A+</span>
+                      <span className="sr-only">{isEn ? "Increase font size" : "Perbesar ukuran teks"}</span>
+                    </Button>
                   </div>
 
                   <Button
                     type="button"
-                    variant={activePanel === "outline" ? "default" : "outline"}
                     size="sm"
+                    variant={activePanel === "outline" ? "default" : "outline"}
+                    aria-pressed={activePanel === "outline"}
                     onClick={() => togglePanel("outline")}
-                    className={cn(
-                      "min-h-10 rounded-full px-3.5 text-xs font-semibold gap-1.5 transition-colors",
-                      activePanel === "outline" &&
-                        "bg-brand-mint text-brand-ink hover:bg-brand-mint/90 border-brand-mint shadow-xs"
-                    )}
+                    className="min-h-10 rounded-full px-4 text-xs font-semibold"
                   >
-                    <List className="size-3.5" aria-hidden="true" />
+                    <ListTree className="size-4" aria-hidden="true" />
                     <span>Daftar Isi</span>
                   </Button>
 
                   <Button
                     type="button"
-                    variant={activePanel === "ai" ? "default" : "outline"}
                     size="sm"
+                    variant={activePanel === "ai" ? "default" : "outline"}
+                    aria-pressed={activePanel === "ai"}
                     onClick={() => togglePanel("ai")}
-                    className={cn(
-                      "min-h-10 rounded-full px-3.5 text-xs font-semibold gap-1.5 transition-colors",
-                      activePanel === "ai" &&
-                        "bg-tint-blue text-brand-ink hover:bg-tint-blue/90 border-tint-blue shadow-xs"
-                    )}
+                    className="min-h-10 rounded-full px-4 text-xs font-semibold"
                   >
-                    <Bot className="size-3.5" aria-hidden="true" />
+                    <MessageSquare className="size-4" aria-hidden="true" />
                     <span>Tanya AI</span>
                   </Button>
 
                   <Button
-                    type="button"
+                    size="sm"
                     variant="outline"
-                    size="sm"
-                    onClick={isPlayingAudio ? stopAllAudio : speakAllDocument}
-                    className="min-h-10 rounded-full px-4 text-xs font-semibold"
-                  >
-                    {isPlayingAudio ? (
-                      <>
-                        <Square className="size-3.5" aria-hidden="true" />
-                        <span>Hentikan Suara</span>
-                      </>
-                    ) : (
-                      <>
-                        <Volume2 className="size-3.5" aria-hidden="true" />
-                        <span>Dengarkan Semua</span>
-                      </>
-                    )}
-                  </Button>
-
-                  <Button
                     asChild
-                    size="sm"
                     className="min-h-10 rounded-full px-4 text-xs font-semibold"
                   >
                     <Link href={`/reader/${scanResult.documentId}`}>
-                      <Headphones className="size-3.5" aria-hidden="true" />
                       <span>Buka di Pembaca</span>
+                      <ExternalLink className="size-3.5 ml-1" aria-hidden="true" />
                     </Link>
                   </Button>
                 </div>
@@ -1166,10 +1091,13 @@ export function OcrDocumentScanner({
             </div>
           </div>
 
-          <div className="sonar-reader-prose max-w-none space-y-3">
+          <div
+            className="sonar-reader-prose max-w-none space-y-3"
+            style={{ fontSize: `${fontSizePx}px`, "--reader-font-size": `${fontSizePx}px` } as React.CSSProperties}
+          >
             {scanResult.blocks.map((block, idx) => {
-              const isPlayingThis =
-                isPlayingAudio && currentlyPlayingIndex === idx;
+              const isPlayingThis = audio.isPlaying && audio.activeIndex === idx;
+              const isBlockActive = activeBlockIndex === idx || isPlayingThis;
 
               return (
                 <div
@@ -1178,7 +1106,7 @@ export function OcrDocumentScanner({
                   tabIndex={-1}
                   className={cn(
                     "rounded-2xl border bg-surface-subtle/50 p-4 space-y-2.5 transition-all focus:outline-none",
-                    activeBlockIndex === idx
+                    isBlockActive
                       ? "border-primary bg-primary/5 ring-2 ring-primary/40 shadow-xs"
                       : "border-border"
                   )}
@@ -1198,37 +1126,27 @@ export function OcrDocumentScanner({
                       size="sm"
                       variant="ghost"
                       onClick={() => {
-                        let spoken = "";
-                        if (block.blockType === "table") {
-                          if (block.tableHeaders || block.tableRows) {
-                            spoken = narrateTableBlock(
-                              block.contentText,
-                              block.tableHeaders,
-                              block.tableRows,
-                              language
-                            );
-                          } else {
-                            const parsed = parseTableData(null, null, block.contentText);
-                            if (parsed.headers.length > 0 || parsed.rows.length > 0) {
-                              spoken = narrateTable(parsed, language);
-                            }
-                          }
+                        if (audio.isPlaying && audio.activeIndex === idx) {
+                          audio.pause();
+                        } else {
+                          audio.playFrom(idx);
                         }
-                        if (!spoken) {
-                          spoken = block.spokenText || block.contentText;
-                        }
-                        speakText(spoken, idx);
                       }}
-                      className="h-9 rounded-full px-3 text-xs"
+                      className={cn(
+                        "h-8 rounded-full px-2.5 text-xs transition-colors",
+                        isPlayingThis
+                          ? "text-primary font-semibold bg-primary/10"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
                     >
                       {isPlayingThis ? (
                         <>
-                          <Square className="size-3.5" aria-hidden="true" />
-                          <span>Berhenti</span>
+                          <Pause className="size-3.5 mr-1 text-primary" aria-hidden="true" />
+                          <span>Jeda</span>
                         </>
                       ) : (
                         <>
-                          <Volume2 className="size-3.5" aria-hidden="true" />
+                          <Volume2 className="size-3.5 mr-1" aria-hidden="true" />
                           <span>Dengarkan</span>
                         </>
                       )}
@@ -1292,6 +1210,126 @@ export function OcrDocumentScanner({
                 </div>
               );
             })}
+          </div>
+
+          {/* Sticky Floating Audio Transport Bar */}
+          <div
+            role="region"
+            aria-label="Pemutar audio pembaca dokumen"
+            className="sticky bottom-20 z-20 flex flex-wrap items-center justify-start gap-3 rounded-2xl border border-border bg-card/95 px-4 py-3 font-ui shadow-nav backdrop-blur-md lg:bottom-4"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={audio.previous}
+                disabled={!audio.isSupported || audio.activeIndex === 0}
+                aria-label="Blok sebelumnya"
+                className="size-9 rounded-full"
+              >
+                <SkipBack className="size-4" aria-hidden="true" />
+              </Button>
+
+              {audio.isPlaying ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={audio.pause}
+                  className="h-9 rounded-full px-4 text-xs font-semibold"
+                >
+                  <Pause className="size-4" aria-hidden="true" />
+                  <span>Jeda</span>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() =>
+                    audio.isPaused ? audio.resume() : audio.playFrom(audio.activeIndex)
+                  }
+                  disabled={!audio.isSupported || audioBlocks.length === 0}
+                  className="h-9 rounded-full px-4 text-xs font-semibold"
+                >
+                  <Play className="size-4" aria-hidden="true" />
+                  <span>{audio.isPaused ? "Lanjutkan" : "Dengarkan"}</span>
+                </Button>
+              )}
+
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={audio.next}
+                disabled={
+                  !audio.isSupported || audio.activeIndex >= audioBlocks.length - 1
+                }
+                aria-label="Blok berikutnya"
+                className="size-9 rounded-full"
+              >
+                <SkipForward className="size-4" aria-hidden="true" />
+              </Button>
+
+              {audio.isPlaying || audio.isPaused ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={audio.stop}
+                  aria-label="Hentikan audio"
+                  className="size-9 rounded-full"
+                >
+                  <Square className="size-3.5" aria-hidden="true" />
+                </Button>
+              ) : null}
+
+              <span className="ml-1 text-xs font-medium tabular-nums text-muted-foreground">
+                Blok {audioBlocks.length === 0 ? 0 : audio.activeIndex + 1} dari{" "}
+                {audioBlocks.length}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 text-xs">
+              <label className="flex items-center gap-1.5 text-muted-foreground">
+                <span>Kecepatan</span>
+                <select
+                  aria-label="Kecepatan suara"
+                  value={narrationSpeed}
+                  onChange={(e) => setNarrationSpeed(Number(e.target.value))}
+                  className="h-9 rounded-full border border-border bg-background px-2.5 text-xs font-semibold text-foreground"
+                >
+                  <option value="0.75">0.75×</option>
+                  <option value="1">1.0×</option>
+                  <option value="1.25">1.25×</option>
+                  <option value="1.5">1.5×</option>
+                  <option value="2">2.0×</option>
+                </select>
+              </label>
+
+              <label className="flex items-center gap-1.5 text-muted-foreground">
+                <span>Bahasa</span>
+                <div className="relative inline-flex items-center">
+                  <select
+                    aria-label="Bahasa narasi dan terjemahan"
+                    disabled={isTranslating}
+                    value={language}
+                    onChange={(e) =>
+                      handleSwitchLanguage(e.target.value === "id" ? "id" : "en")
+                    }
+                    className="h-9 rounded-full border border-border bg-background px-2.5 text-xs font-semibold text-foreground disabled:opacity-50"
+                  >
+                    <option value="id">ID</option>
+                    <option value="en">EN</option>
+                  </select>
+                  {isTranslating && (
+                    <Loader2
+                      className="absolute right-7 size-3 animate-spin text-primary"
+                      aria-hidden="true"
+                    />
+                  )}
+                </div>
+              </label>
+            </div>
           </div>
         </section>
       </div>

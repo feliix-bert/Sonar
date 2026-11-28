@@ -173,37 +173,31 @@ export function ScanCompanionPanel({
     <div className="flex h-full min-h-0 flex-1 flex-col font-sans">
       {/* Top Companion Header with Tabs and Close Button */}
       {!hideHeaderInSheet && (
-        <div className="flex items-center justify-between border-b border-border px-4 py-3 font-ui">
-          <div className="flex items-center gap-1.5" role="tablist" aria-label="Pilihan panel samping">
+        <div className="flex items-center justify-between border-b border-border p-3 font-ui">
+          <div className="flex items-center gap-1">
             <button
               type="button"
-              role="tab"
-              aria-selected={activeTab === "outline"}
               onClick={() => onTabChange("outline")}
               className={cn(
-                "inline-flex items-center gap-1.5 min-h-9 rounded-full px-3.5 text-xs font-semibold transition-colors",
+                "min-h-9 rounded-full px-3 text-xs font-semibold transition-colors",
                 activeTab === "outline"
-                  ? "bg-brand-mint text-brand-ink shadow-xs"
+                  ? "bg-brand-mint text-brand-ink"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <List className="size-3.5" aria-hidden="true" />
-              <span>Daftar Isi</span>
+              Daftar Isi
             </button>
             <button
               type="button"
-              role="tab"
-              aria-selected={activeTab === "ai"}
               onClick={() => onTabChange("ai")}
               className={cn(
-                "inline-flex items-center gap-1.5 min-h-9 rounded-full px-3.5 text-xs font-semibold transition-colors",
+                "min-h-9 rounded-full px-3 text-xs font-semibold transition-colors",
                 activeTab === "ai"
-                  ? "bg-tint-blue text-brand-ink shadow-xs"
+                  ? "bg-tint-blue text-brand-ink"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Bot className="size-3.5" aria-hidden="true" />
-              <span>Tanya AI</span>
+              Tanya AI
             </button>
           </div>
           <Button
@@ -233,7 +227,6 @@ export function ScanCompanionPanel({
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <List className="size-3.5" aria-hidden="true" />
               <span>Daftar Isi</span>
             </button>
             <button
@@ -246,7 +239,6 @@ export function ScanCompanionPanel({
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Bot className="size-3.5" aria-hidden="true" />
               <span>Tanya AI</span>
             </button>
           </div>
@@ -260,7 +252,7 @@ export function ScanCompanionPanel({
           <div className="space-y-3 border-b border-border p-4">
             <div
               role="tablist"
-              aria-label="Navigasi daftar isi"
+              aria-label="Filter daftar isi"
               className="grid grid-cols-2 gap-1 rounded-xl bg-surface-subtle p-1 text-xs"
             >
               <button
@@ -269,13 +261,13 @@ export function ScanCompanionPanel({
                 aria-selected={outlineSubTab === "outline"}
                 onClick={() => setOutlineSubTab("outline")}
                 className={cn(
-                  "min-h-8 rounded-lg font-semibold transition-colors",
+                  "min-h-9 rounded-lg font-semibold transition-colors",
                   outlineSubTab === "outline"
                     ? "bg-card text-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                Struktur Bab ({outlineItems.length})
+                Isi
               </button>
               <button
                 type="button"
@@ -283,34 +275,40 @@ export function ScanCompanionPanel({
                 aria-selected={outlineSubTab === "search"}
                 onClick={() => setOutlineSubTab("search")}
                 className={cn(
-                  "min-h-8 rounded-lg font-semibold transition-colors",
+                  "min-h-9 rounded-lg font-semibold transition-colors",
                   outlineSubTab === "search"
                     ? "bg-card text-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                Cari Kata
+                Cari
               </button>
             </div>
 
             {outlineSubTab === "search" && (
-              <div className="relative">
-                <Search
-                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari kata dalam materi…"
-                  className="h-10 rounded-xl pl-9 font-sans text-sm"
-                />
+              <div>
+                <label htmlFor="scan-search-input" className="sr-only">
+                  Cari teks dalam materi
+                </label>
+                <div className="relative">
+                  <Search
+                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    id="scan-search-input"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari kata dalam materi…"
+                    className="h-10 rounded-xl pl-9 font-sans text-sm"
+                  />
+                </div>
               </div>
             )}
           </div>
 
           {/* List of items */}
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+          <div className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
             {outlineSubTab === "outline" ? (
               outlineItems.length === 0 ? (
                 <p className="rounded-xl bg-surface-subtle p-4 font-sans text-sm text-muted-foreground">
@@ -318,31 +316,21 @@ export function ScanCompanionPanel({
                 </p>
               ) : (
                 <nav aria-label="Daftar isi materi dan elemen penting">
-                  <ul className="space-y-1.5">
+                  <ul className="space-y-1">
                     {outlineItems.map(({ block, originalIndex }) => {
                       const isActive = activeBlockIndex === originalIndex;
                       const isEquation = block.blockType === "equation";
                       const isTable = block.blockType === "table";
                       const isFigure = block.blockType === "figure";
                       const isHeading = block.blockType === "heading";
+                      const isSubHeading =
+                        isHeading && (/^#{2,}\s/.test(block.contentText) || block.contentText.startsWith("##"));
 
-                      let icon = <Hash className="size-3.5 shrink-0 text-muted-foreground" />;
-                      let badge = "Judul";
-                      let badgeColor = "bg-primary/10 text-primary";
-
-                      if (isEquation) {
-                        icon = <Sigma className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />;
-                        badge = "Rumus";
-                        badgeColor = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
-                      } else if (isTable) {
-                        icon = <TableIcon className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />;
-                        badge = "Tabel";
-                        badgeColor = "bg-amber-500/10 text-amber-600 dark:text-amber-400";
-                      } else if (isFigure) {
-                        icon = <ImageIcon className="size-3.5 shrink-0 text-indigo-600 dark:text-indigo-400" />;
-                        badge = "Gambar";
-                        badgeColor = "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400";
-                      }
+                      let prefix = "";
+                      if (isEquation) prefix = "Rumus";
+                      else if (isTable) prefix = "Tabel";
+                      else if (isFigure) prefix = "Gambar";
+                      else if (isHeading) prefix = "Bab";
 
                       const displayText =
                         block.contentText.replace(/^#+\s*/, "").slice(0, 80) || "Elemen materi";
@@ -354,23 +342,19 @@ export function ScanCompanionPanel({
                             onClick={() => onJumpToBlock(originalIndex)}
                             aria-current={isActive ? "true" : undefined}
                             className={cn(
-                              "flex min-h-10 w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-all",
+                              "flex min-h-10 w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors",
+                              isSubHeading && "pl-6",
                               isActive
-                                ? "bg-primary font-semibold text-primary-foreground shadow-xs"
-                                : "text-foreground hover:bg-surface-subtle"
+                                ? "bg-primary font-semibold text-primary-foreground"
+                                : "text-foreground/85 hover:bg-brand-mint hover:text-brand-ink dark:hover:bg-muted dark:hover:text-foreground"
                             )}
                           >
-                            <div className="flex items-center gap-2 min-w-0">
-                              {icon}
-                              <span className="truncate">{displayText}</span>
-                            </div>
-                            <span
-                              className={cn(
-                                "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold",
-                                isActive ? "bg-primary-foreground/20 text-primary-foreground" : badgeColor
-                              )}
-                            >
-                              {badge}
+                            <span className="truncate">
+                              {prefix ? `${prefix}: ` : ""}
+                              {displayText}
+                            </span>
+                            <span className="shrink-0 text-xs opacity-80">
+                              Blok {originalIndex + 1}
                             </span>
                           </button>
                         </li>
@@ -386,7 +370,7 @@ export function ScanCompanionPanel({
                   : "Ketik kata kunci untuk mencari di seluruh bagian materi."}
               </p>
             ) : (
-              <ul className="space-y-1.5">
+              <ul className="space-y-1">
                 {filteredItems.map(({ block, originalIndex }) => {
                   const isActive = activeBlockIndex === originalIndex;
                   return (
@@ -396,14 +380,14 @@ export function ScanCompanionPanel({
                         onClick={() => onJumpToBlock(originalIndex)}
                         aria-current={isActive ? "true" : undefined}
                         className={cn(
-                          "flex min-h-10 w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2 text-left text-sm transition-all",
+                          "flex min-h-10 w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors",
                           isActive
-                            ? "bg-primary font-semibold text-primary-foreground shadow-xs"
-                            : "text-foreground hover:bg-surface-subtle"
+                            ? "bg-primary font-semibold text-primary-foreground"
+                            : "text-foreground/85 hover:bg-brand-mint hover:text-brand-ink dark:hover:bg-muted dark:hover:text-foreground"
                         )}
                       >
                         <span className="truncate">{block.contentText.slice(0, 85)}</span>
-                        <span className="shrink-0 text-xs opacity-75">#{originalIndex + 1}</span>
+                        <span className="shrink-0 text-xs opacity-80">Blok {originalIndex + 1}</span>
                       </button>
                     </li>
                   );
@@ -425,13 +409,12 @@ export function ScanCompanionPanel({
             className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 text-sm"
           >
             {messages.length === 0 ? (
-              <div className="space-y-2 rounded-2xl bg-surface-subtle p-4 text-sm text-muted-foreground font-ui">
-                <div className="flex items-center gap-2 text-foreground font-semibold">
-                  <Sparkles className="size-4 text-primary" aria-hidden="true" />
-                  <span>Tanyakan Apa Saja Mengenai Materi Ini</span>
-                </div>
-                <p className="text-xs leading-relaxed">
-                  Asisten AI akan menjawab mengacu pada teks, rumus, dan tabel yang baru saja dipindai dari dokumen Anda.
+              <div className="space-y-2 rounded-2xl bg-surface-subtle p-4 text-sm text-muted-foreground font-sans">
+                <p className="font-medium text-foreground">
+                  Tanyakan ringkasan, rumus, tabel, atau konsep dari materi ini.
+                </p>
+                <p className="text-xs">
+                  Jawaban disusun mengacu pada isi materi yang baru saja dipindai.
                 </p>
               </div>
             ) : (
