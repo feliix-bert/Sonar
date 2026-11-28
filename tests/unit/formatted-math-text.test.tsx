@@ -130,4 +130,23 @@ describe("FormattedMathText & KaTeX rendering", () => {
     expect(container.querySelector(".katex-display")).toBeInTheDocument();
     expect(screen.getByText("Lihat kode LaTeX asli")).toBeInTheDocument();
   });
+
+  it("renders complex nested fractions and unescaped exponent/subscript expressions cleanly", () => {
+    // 1. Nested fraction
+    const fracText = "Pecahan bertingkat: \\frac{1}{\\frac{1}{R_1} + \\frac{1}{R_2}}";
+    const { container: c1 } = render(<FormattedMathText text={fracText} as="div" />);
+    expect(c1.querySelector(".katex")).toBeInTheDocument();
+    expect(c1.querySelector(".katex-html")?.textContent).not.toContain("\\frac");
+
+    // 2. Exponent followed by variable
+    const expText = "Nilai ekspresi x^2y + a^3b^2 dan m^n p";
+    const { container: c2 } = render(<FormattedMathText text={expText} as="div" />);
+    expect(c2.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(1);
+
+    // 3. Subscript with arithmetic inside curly braces
+    const subText = "Elemen x_{i+1} dan kombinasi x_{i+1}^2";
+    const { container: c3 } = render(<FormattedMathText text={subText} as="div" />);
+    expect(c3.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(2);
+    expect(c3.querySelector(".katex-html")?.textContent).not.toContain("x_{i+1}");
+  });
 });

@@ -208,7 +208,7 @@ export async function POST(req: Request) {
           .join("\n\n");
         if (combined.trim().length > 0) {
           rawTextLayer =
-            combined.length > 18_000 ? `${combined.slice(0, 18_000)}\n\n[...halaman selanjutnya diringkas]` : combined;
+            combined.length > 120_000 ? `${combined.slice(0, 120_000)}\n\n[...halaman selanjutnya diringkas]` : combined;
         }
       }
     } catch (pdfErr) {
@@ -216,9 +216,10 @@ export async function POST(req: Request) {
     }
 
     const pdfByteSize = pdfBuffer ? pdfBuffer.byteLength : Math.round(cleanBase64.length * 0.75);
-    const hasRichTextLayer = Boolean(rawTextLayer && rawTextLayer.length >= 250);
+    // Always provide the PDF binary to multimodal vision for complete formula & layout fidelity
+    // as long as it fits within serverless payload limits (<= 16 MB and <= 35 pages).
     const shouldAttachBinaryToVision =
-      !hasRichTextLayer || (pdfByteSize <= 2.5 * 1024 * 1024 && extractedPageCount <= 8);
+      Boolean(imageBase64 && pdfByteSize <= 16 * 1024 * 1024 && extractedPageCount <= 35);
 
     // Call OCR Provider
     const ocrProvider = getDefaultOcrProvider();

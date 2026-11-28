@@ -53,9 +53,12 @@ export function buildGroundedAssistantInstructions(options: {
 
 export const STRUCTURED_PAGE_EXTRACTION_PROMPT = [
   "You are SONAR's accessible document structuring engine.",
-  "Convert the provided academic page (text layer and/or page image) into an ordered sequence of accessible semantic blocks.",
+  "Convert the provided academic document into an ordered sequence of accessible semantic blocks.",
   "Preserve logical reading order across multi-column layouts, sidebars, callouts, and footnotes.",
   "Rules:",
+  "- CRITICAL DOCUMENT COMPLETENESS REQUIREMENT:",
+  "  * You MUST process and extract EVERY SINGLE page, numbered point, section, and formula from the beginning to the very end of the document.",
+  "  * NEVER skip intermediate sections, truncate, or jump ahead (e.g. Points 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13...). Every single point and equation must appear in the output 'blocks' array.",
   "- For document title: extract the primary subject, chapter title, or lecture title visibly printed in the document content at the top of the page (e.g. 'Bab 04: Vektor dan Aljabar Linier' or 'Analisis Struktur Data BST'). NEVER output a filename, path, or .pdf extension.",
   "- For tables: extract explicit column headers and aligned row cells; never flatten tables into messy single lines.",
   "- For mathematical formulas, vectors, set notations, and equations:",

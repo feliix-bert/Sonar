@@ -150,11 +150,72 @@ export function autoWrapUnescapedMath(text: string): string {
     }
   );
 
-  // 6. Standalone fractions: \frac{a}{b} with optional scalar/variable prefix
-  workingText = workingText.replace(
-    /(?<![a-zA-Z0-9_\\])(?:-?[0-9a-zA-Z\+\-\*\/]+\s*)?\\frac\{[^{}\n]+\}\{[^{}\n]+\}(?:\s*[a-zA-Z0-9\+\-\*\/]+)?/g,
-    (m) => protect(`\\(${m}\\)`)
+  // 6. Fractions (including multi-level nested fractions like \frac{1}{\frac{1}{R_1} + \frac{1}{R_2}})
+  const findBalancedBrace = (str: string, openIdx: number): number => {
+    if (str[openIdx] !== "{") return -1;
+    let depth = 0;
+    for (let idx = openIdx; idx < str.length; idx++) {
+      if (str[idx] === "{") depth++;
+      else if (str[idx] === "}") {
+        depth--;
+        if (depth === 0) return idx;
+      }
+    }
+    return -1;
+  };
+
+  let fracSearchIdx = 0;
+  while (fracSearchIdx < workingText.length) {
+    const match = workingText
+      .slice(fracSearchIdx)
+      .match(/(?<![a-zA-Z0-9_\\])(?:-?[0-9a-zA-Z\+\-\*\/]+\s*)?\\(?:frac|dfrac|tfrac)\s*\{/);
+    if (!match || match.index === undefined) break;
+
+    const startPos = fracSearchIdx + match.index;
+    const numOpen = startPos + match[0].length - 1;
+    const numClose = findBalancedBrace(workingText, numOpen);
+    if (numClose === -1) {
+      fracSearchIdx = startPos + match[0].length;
+      continue;
+    }
+
+    let denOpen = numClose + 1;
+    while (
+      denOpen < workingText.length &&
+      (workingText[denOpen] === " " || workingText[denOpen] === "\t")
+    ) {
+      denOpen++;
+    }
+    const denClose = findBalancedBrace(workingText, denOpen);
+    if (denClose === -1) {
+      fracSearchIdx = numClose + 1;
+      continue;
+    }
+
+    const fullFrac = workingText.slice(startPos, denClose + 1);
+    const protectedFrac = protect(`\\(${fullFrac}\\)`);
+    workingText =
+      workingText.slice(0, startPos) + protectedFrac + workingText.slice(denClose + 1);
+    fracSearchIdx = startPos + protectedFrac.length;
+  }
+
+  // 6b. Polynomial and power terms with arithmetic: e.g. x^2y + a^3b^2, m^n p, a^n \cdot a^m, (x^2)^{k-1}
+  const singlePowerTerm =
+    '(?:[a-zA-Z0-9]|\\([a-zA-Z0-9_\\+\\-\\*\\/\\s\\.]+\\))\\^(?:[0-9a-zA-Z]+|\\{[^{}\\n]+\\})(?:[a-zA-Z](?:\\^(?:[0-9a-zA-Z]+|\\{[^{}\\n]+\\}))?)*';
+  const powerChainRegex = new RegExp(
+    '(?<![a-zA-Z0-9_\\\\])(?:[a-zA-Z0-9]\\s*=\\s*)?' +
+      singlePowerTerm +
+      '(?:\\s*(?:[\\+\\-\\*\\/=]|\\\\cdot|\\\\times)\\s*(?:' +
+      singlePowerTerm +
+      '|[0-9a-zA-Z]+))*',
+    'g'
   );
+  workingText = workingText.replace(powerChainRegex, (m) => {
+    if (m.includes("^") && !m.includes("___MATH_PLACEHOLDER_")) {
+      return protect(`\\(${m.trim()}\\)`);
+    }
+    return m;
+  });
 
   // 7. Vector/math accents and Blackboard/Mathbb: e.g. \bar{a}, \bar{b}, \bar{u}, \bar{v}, \overline{A}, \mathbb{R}^3, k\bar{a}, 2\bar{a}
   workingText = workingText.replace(
@@ -174,10 +235,13 @@ export function autoWrapUnescapedMath(text: string): string {
     (m) => protect(`\\(${m}\\)`)
   );
 
-  // 10. Subscript variables: e.g. E_7, E_8, X_1, a_k
+  // 10. Subscript variables: e.g. E_7, E_8, X_1, a_k, x_{i+1}, x_{i+1}^2, R_1, R_2
   workingText = workingText.replace(
-    /(?<![a-zA-Z0-9_\\])\b([A-Za-z])_([0-9a-zA-Z]+|\{[^}]+\})\b/g,
-    (_m, varName, sub) => protect(`\\(${varName}_${sub}\\)`)
+    /(?<![a-zA-Z0-9_\\])\b([A-Za-z])_([0-9a-zA-Z]+|\{[^{}\n]+\})(?:\^([0-9a-zA-Z]+|\{[^{}\n]+\}))?(?![a-zA-Z0-9_])/g,
+    (_m, varName, sub, exp) => {
+      const expPart = exp ? `^${exp}` : "";
+      return protect(`\\(${varName}_${sub}${expPart}\\)`);
+    }
   );
 
   // 11. Standalone Greek / LaTeX / Math / Set symbols with text or exponents:
