@@ -14,23 +14,31 @@ export function autoWrapUnescapedMath(text: string): string {
   const mathRegex =
     /(?:\$\$[\s\S]*?\$\$|\\+\[[\s\S]*?\\+\]|\\+\([\s\S]*?\\+\)|\$[^\$\n]+?\$|\\+begin\{[a-zA-Z*]+\}[\s\S]*?\\+end\{[a-zA-Z*]+\})/g;
 
-  const protect = (m: string): string => {
-    const idx = protectedMath.length;
-    protectedMath.push(m);
-    return `___MATH_PLACEHOLDER_${idx}___`;
+  const unwrapInnerPlaceholders = (expr: string): string => {
+    let prev = "";
+    let current = expr;
+    while (current !== prev && /___MATH_PLACEHOLDER_\d+___/.test(current)) {
+      prev = current;
+      current = current.replace(/___MATH_PLACEHOLDER_(\d+)___/g, (_m, idx) => {
+        const inner = protectedMath[Number(idx)];
+        if (!inner) return _m;
+        return inner
+          .replace(/^\$\$([\s\S]*)\$\$$/, "$1")
+          .replace(/^\\\[([\s\S]*)\\\]$/, "$1")
+          .replace(/^\\\(([\s\S]*)\\\)$/, "$1")
+          .replace(/^\$([^\$\n]+)\$$/, "$1")
+          .trim();
+      });
+    }
+    return current;
   };
 
-  const unwrapInnerPlaceholders = (expr: string): string => {
-    return expr.replace(/___MATH_PLACEHOLDER_(\d+)___/g, (_m, idx) => {
-      const inner = protectedMath[Number(idx)];
-      if (!inner) return _m;
-      return inner
-        .replace(/^\$\$([\s\S]*)\$\$$/, "$1")
-        .replace(/^\\\[([\s\S]*)\\\]$/, "$1")
-        .replace(/^\\\(([\s\S]*)\\\)$/, "$1")
-        .replace(/^\$([^\$\n]+)\$$/, "$1")
-        .trim();
-    });
+  const protect = (m: string): string => {
+    // If m contains inner math placeholders, unwrap their math delimiters so we never produce nested \( ... \( ... \) ... \)
+    const cleanExpr = unwrapInnerPlaceholders(m);
+    const idx = protectedMath.length;
+    protectedMath.push(cleanExpr);
+    return `___MATH_PLACEHOLDER_${idx}___`;
   };
 
   let workingText = text
@@ -128,29 +136,7 @@ export function autoWrapUnescapedMath(text: string): string {
     (m) => protect(`\\(${m}\\)`)
   );
 
-  // 4b. Common equations with equality and LaTeX commands: e.g. f(x) = \frac{1}{2}x, y' = \lim_{h \to 0} ..., E = mc^2
-  workingText = workingText.replace(
-    /(?<![a-zA-Z0-9_\\])(?:[a-zA-Z](?:\([a-zA-Z0-9,\s]+\)|'|_[0-9a-zA-Z]+)?\s*=\s*(?:[^\n$]+?\\[a-zA-Z]+[^\n$]*?))(?=[.,;\s]|$)/g,
-    (m) => {
-      if (!m.includes("___MATH_PLACEHOLDER_") && !m.includes("http")) {
-        return protect(`\\(${m.trim()}\\)`);
-      }
-      return m;
-    }
-  );
-
-  // 5. Vector expressions with arithmetic operators: e.g. \bar{a} + \bar{b}, \bar{u} - \bar{v}, \bar{a} \times \bar{b}
-  workingText = workingText.replace(
-    /(?<![a-zA-Z0-9_\\])(?:(?:(?:-?\d+(?:\.\d+)?|\b[a-zA-Z])\s*)?\\(?:bar|vec|hat|tilde|mathbf)\{[a-zA-Z0-9]+\})\s*(?:[\+\-\*\/]|\\times|\\cdot)\s*(?:(?:(?:-?\d+(?:\.\d+)?|\b[a-zA-Z])\s*)?\\(?:bar|vec|hat|tilde|mathbf)\{[a-zA-Z0-9]+\}|[a-zA-Z0-9_]+)(?:\s*(?:[\+\-\*\/]|\\times|\\cdot)\s*(?:(?:(?:-?\d+(?:\.\d+)?|\b[a-zA-Z])\s*)?\\(?:bar|vec|hat|tilde|mathbf)\{[a-zA-Z0-9]+\}|[a-zA-Z0-9_]+))*/g,
-    (m) => {
-      if (m.includes("\\")) {
-        return protect(`\\(${m}\\)`);
-      }
-      return m;
-    }
-  );
-
-  // 6. Fractions (including multi-level nested fractions like \frac{1}{\frac{1}{R_1} + \frac{1}{R_2}})
+  // 4b. Fractions (including multi-level nested fractions like \frac{1}{\frac{1}{R_1} + \frac{1}{R_2}} and F(x) = \frac{...}{...})
   const findBalancedBrace = (str: string, openIdx: number): number => {
     if (str[openIdx] !== "{") return -1;
     let depth = 0;
@@ -168,7 +154,9 @@ export function autoWrapUnescapedMath(text: string): string {
   while (fracSearchIdx < workingText.length) {
     const match = workingText
       .slice(fracSearchIdx)
-      .match(/(?<![a-zA-Z0-9_\\])(?:-?[0-9a-zA-Z\+\-\*\/]+\s*)?\\(?:frac|dfrac|tfrac)\s*\{/);
+      .match(
+        /(?<![a-zA-Z0-9_\\])(?:(?:[a-zA-Z](?:\([a-zA-Z0-9,\s]+\)|'|_[0-9a-zA-Z]+|\^\{?[0-9a-zA-Z]+\}?)?\s*=\s*)?)(?:-?[0-9a-zA-Z\+\-\*\/]+\s*)?\\(?:frac|dfrac|tfrac)\s*\{/
+      );
     if (!match || match.index === undefined) break;
 
     const startPos = fracSearchIdx + match.index;
@@ -198,6 +186,38 @@ export function autoWrapUnescapedMath(text: string): string {
       workingText.slice(0, startPos) + protectedFrac + workingText.slice(denClose + 1);
     fracSearchIdx = startPos + protectedFrac.length;
   }
+
+  // 4c. Common equations with equality and LaTeX commands: e.g. f(x) = \frac{1}{2}x, y' = \lim_{h \to 0} ..., E = mc^2
+  workingText = workingText.replace(
+    /(?<![a-zA-Z0-9_\\])(?:[a-zA-Z](?:\([a-zA-Z0-9,\s]+\)|'|_[0-9a-zA-Z]+)?\s*=\s*(?:[^\n$]+?\\[a-zA-Z]+[^\n$]*?))(?=[.,;\s]|$)/g,
+    (m) => {
+      if (!m.includes("___MATH_PLACEHOLDER_") && !m.includes("http")) {
+        return protect(`\\(${m.trim()}\\)`);
+      }
+      return m;
+    }
+  );
+
+  // 5. Vector expressions with arithmetic operators: e.g. \bar{a} + \bar{b}, \bar{u} - \bar{v}, \bar{a} \times \bar{b}
+  workingText = workingText.replace(
+    /(?<![a-zA-Z0-9_\\])(?:(?:(?:-?\d+(?:\.\d+)?|\b[a-zA-Z])\s*)?\\(?:bar|vec|hat|tilde|mathbf)\{[a-zA-Z0-9]+\})\s*(?:[\+\-\*\/]|\\times|\\cdot)\s*(?:(?:(?:-?\d+(?:\.\d+)?|\b[a-zA-Z])\s*)?\\(?:bar|vec|hat|tilde|mathbf)\{[a-zA-Z0-9]+\}|[a-zA-Z0-9_]+)(?:\s*(?:[\+\-\*\/]|\\times|\\cdot)\s*(?:(?:(?:-?\d+(?:\.\d+)?|\b[a-zA-Z])\s*)?\\(?:bar|vec|hat|tilde|mathbf)\{[a-zA-Z0-9]+\}|[a-zA-Z0-9_]+))*/g,
+    (m) => {
+      if (m.includes("\\")) {
+        return protect(`\\(${m}\\)`);
+      }
+      return m;
+    }
+  );
+
+  // 6. Subscript variables: e.g. E_7, E_8, X_1, a_k, x_{i+1}, x_{i+1}^2, x_{(i+1)^2}, R_1, R_2
+  // Placed before power chains so subscripted expressions aren't partially dissected.
+  workingText = workingText.replace(
+    /(?<![a-zA-Z0-9_\\])\b([A-Za-z])_([0-9a-zA-Z]+|\{[^{}\n]+\})(?:\^([0-9a-zA-Z]+|\{[^{}\n]+\}))?(?![a-zA-Z0-9_])/g,
+    (_m, varName, sub, exp) => {
+      const expPart = exp ? `^${exp}` : "";
+      return protect(`\\(${varName}_${sub}${expPart}\\)`);
+    }
+  );
 
   // 6b. Polynomial and power terms with arithmetic: e.g. x^2y + a^3b^2, m^n p, a^n \cdot a^m, (x^2)^{k-1}
   const singlePowerTerm =
@@ -235,31 +255,23 @@ export function autoWrapUnescapedMath(text: string): string {
     (m) => protect(`\\(${m}\\)`)
   );
 
-  // 10. Subscript variables: e.g. E_7, E_8, X_1, a_k, x_{i+1}, x_{i+1}^2, R_1, R_2
-  workingText = workingText.replace(
-    /(?<![a-zA-Z0-9_\\])\b([A-Za-z])_([0-9a-zA-Z]+|\{[^{}\n]+\})(?:\^([0-9a-zA-Z]+|\{[^{}\n]+\}))?(?![a-zA-Z0-9_])/g,
-    (_m, varName, sub, exp) => {
-      const expPart = exp ? `^${exp}` : "";
-      return protect(`\\(${varName}_${sub}${expPart}\\)`);
-    }
+  // 10. Inline inequalities, subsets, and comparisons: e.g. L - 3 \le x \le L, 0 \le y \le W, x \ge 0, A \subset B, x^2 y \ne x^{2y}
+  // Placed before standalone symbols so binary relations are captured as cohesive formulas.
+  const compOperand = '(?:___MATH_PLACEHOLDER_\\d+___|[a-zA-Z0-9_\\(\\)\\-\\+\\*\\/]+)';
+  const compOp = '\\\\(?:le|ge|ne|approx|sim|equiv|subset|subseteq|supset|supseteq|subsetneq|supsetneq|in|notin)';
+  const compRegex = new RegExp(
+    `(?<![a-zA-Z0-9_\\\\])(?:${compOperand}\\s*)?${compOp}\\s*(?:${compOperand}(?:\\s*${compOp}\\s*${compOperand})?)`,
+    'g'
   );
+  workingText = workingText.replace(compRegex, (m) => {
+    return protect(`\\(${unwrapInnerPlaceholders(m.trim())}\\)`);
+  });
 
   // 11. Standalone Greek / LaTeX / Math / Set symbols with text or exponents:
-  // e.g. \emptyset, \varnothing, \infty, \partial, \nabla, \forall, \exists, \varepsilon \text{ kaki}, \varepsilon^2
+  // e.g. \cap, \cup, \in, \subset, \setminus, \emptyset, \varnothing, \infty, \partial, \nabla, \forall, \exists, \ne, \le, \ge, etc.
   workingText = workingText.replace(
-    /\\(?:emptyset|varnothing|infty|partial|nabla|forall|exists|nexists|neg|aleph|hbar|varepsilon|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Delta|Gamma|Theta|Lambda|Xi|Pi|Sigma|Phi|Psi|Omega)(?:\^[0-9a-zA-Z]+|\^\{[^}]+\}|_[0-9a-zA-Z]+|_{[^}]+})?(?:\s*\\text\{[^}]+\})?/g,
+    /\\(?:cap|cup|in|notin|subset|subseteq|supset|supseteq|setminus|emptyset|varnothing|infty|partial|nabla|forall|exists|nexists|neg|aleph|hbar|pm|mp|times|div|cdot|circ|bullet|star|approx|sim|simeq|cong|equiv|propto|le|ge|ne|neq|leq|geq|ll|gg|to|rightarrow|leftarrow|Rightarrow|Leftarrow|Leftrightarrow|iff|implies|mapsto|land|lor|oplus|otimes|varepsilon|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Delta|Gamma|Theta|Lambda|Xi|Pi|Sigma|Phi|Psi|Omega)(?:\^[0-9a-zA-Z]+|\^\{[^}]+\}|_[0-9a-zA-Z]+|_{[^}]+})?(?:\s*\\text\{[^}]+\})?/g,
     (m) => protect(`\\(${m.trim()}\\)`)
-  );
-
-  // 12. Inline inequalities, subsets, and comparisons: e.g. L - 3 \le x \le L, 0 \le y \le W, x \ge 0, A \subset B
-  workingText = workingText.replace(
-    /(?<![a-zA-Z0-9_\\])(?:[a-zA-Z0-9_\(\)\-\+\*\/]+\s*)?\\(?:le|ge|ne|approx|sim|equiv|subset|subseteq|supset|supseteq|subsetneq|supsetneq|in|notin)\s*(?:[a-zA-Z0-9_\(\)\-\+\*\/]+(?:\s*\\(?:le|ge|ne|approx|sim|equiv|subset|subseteq|supset|supseteq|in|notin)\s*[a-zA-Z0-9_\(\)\-\+\*\/]+)?)/g,
-    (m) => {
-      if (!m.includes("___MATH_PLACEHOLDER_")) {
-        return protect(`\\(${m}\\)`);
-      }
-      return m;
-    }
   );
 
   // Expand all placeholders iteratively until all nested levels are resolved
@@ -400,7 +412,7 @@ export function renderInlineMathAndMarkdown(
       rawFormula = match[0] || "";
     }
 
-    const cleanFormula = rawFormula.trim();
+    const cleanFormula = rawFormula.replace(/\\\(|\\\)/g, "").trim();
 
     // In KaTeX, environments like align, equation, gather REQUIRE displayMode: true
     const isDisplayMode = Boolean(

@@ -149,4 +149,24 @@ describe("FormattedMathText & KaTeX rendering", () => {
     expect(c3.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(2);
     expect(c3.querySelector(".katex-html")?.textContent).not.toContain("x_{i+1}");
   });
+
+  it("renders complex table key verification expressions without nested delimiter errors", () => {
+    // V-A01: Complex 3-layer fraction
+    const vA01 = "F(x) = \\frac{\\frac{x+1}{x-1} - \\frac{x-1}{x+1}}{\\frac{x+1}{x-1} + \\frac{x-1}{x+1}}";
+    const { container: c1 } = render(<FormattedMathText text={vA01} as="span" />);
+    expect(c1.querySelector(".katex")).toBeInTheDocument();
+    expect(c1.querySelector(".katex-error")).toBeNull();
+
+    // V-A02: Powers, subscripts, and inequality comparisons
+    const vA02 = "x^2 y \\ne x^{2y}, x_{i+1}^2 \\ne x_{(i+1)^2}";
+    const { container: c2 } = render(<FormattedMathText text={vA02} as="span" />);
+    expect(c2.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(1);
+    expect(c2.querySelector(".katex-error")).toBeNull();
+
+    // V-A03: Standalone set and logic symbols separated by commas
+    const vA03 = "\\cap, \\cup, \\in, \\subset, \\setminus, \\emptyset, \\forall, \\exists";
+    const { container: c3 } = render(<FormattedMathText text={vA03} as="span" />);
+    expect(c3.querySelectorAll(".katex").length).toBe(8);
+    expect(c3.querySelector(".katex-error")).toBeNull();
+  });
 });

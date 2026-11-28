@@ -41,6 +41,8 @@ export function MathEquationView({
     } else if (raw.startsWith("$") && raw.endsWith("$") && raw.length > 2) {
       raw = raw.slice(1, -1).trim();
     }
+    // Strip any nested or stray \( and \) delimiters so KaTeX syntax is never corrupted
+    raw = raw.replace(/\\\(|\\\)/g, "").trim();
     return raw;
   }, [latex, contentText]);
 
