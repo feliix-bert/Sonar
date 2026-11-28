@@ -42,8 +42,8 @@ import { AccessibilityToolbar } from "@/components/accessibility/AccessibilityTo
 import { CommandMenu } from "@/components/accessibility/CommandMenu";
 import { useTranslation } from "@/lib/i18n/use-translation";
 import { initialsOf } from "@/lib/format";
-import { signOutAction } from "@/features/authentication/actions";
 import { createClient } from "@/lib/supabase/client";
+import { LogoutConfirmDialog } from "@/components/auth/LogoutConfirmDialog";
 
 interface NavLink {
   label: string;
@@ -206,8 +206,41 @@ function NavAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null
   );
 }
 
+const USER_CACHE_KEY = "sonar_user_cache";
+const CACHE_TTL_MS = 1000 * 60 * 15; // 15 menit cache di session storage
+
+function getCachedUser(): HeaderUser | null | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const raw = sessionStorage.getItem(USER_CACHE_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.timestamp === "number") {
+      if (Date.now() - parsed.timestamp < CACHE_TTL_MS) {
+        return (parsed.user as HeaderUser | null) ?? null;
+      }
+    }
+  } catch {
+    // Ignore storage parse error
+  }
+  return undefined;
+}
+
+function setCachedUser(user: HeaderUser | null) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(
+      USER_CACHE_KEY,
+      JSON.stringify({ user, timestamp: Date.now() })
+    );
+  } catch {
+    // Ignore storage write error
+  }
+}
+
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [user, setUser] = useState<HeaderUser | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const { t, isEn } = useTranslation();
@@ -215,17 +248,35 @@ export function SiteHeader() {
   useEffect(() => {
     let isMounted = true;
 
+    // 1. Cek cache sessionStorage terlebih dahulu (0ms, 0 API request ke Supabase)
+    const cached = getCachedUser();
+    if (cached !== undefined) {
+      setUser(cached);
+      setIsLoadingUser(false);
+      return;
+    }
+
     async function loadUser() {
       try {
         const res = await fetch("/api/auth/me", { cache: "no-store" });
         if (!res.ok) {
-          if (isMounted) setUser(null);
+          if (isMounted) {
+            setUser(null);
+            setCachedUser(null);
+          }
           return;
         }
         const data = await res.json();
-        if (isMounted) setUser(data.user ?? null);
+        const resolvedUser = (data.user as HeaderUser | null) ?? null;
+        if (isMounted) {
+          setUser(resolvedUser);
+          setCachedUser(resolvedUser);
+        }
       } catch {
-        if (isMounted) setUser(null);
+        if (isMounted) {
+          setUser(null);
+          setCachedUser(null);
+        }
       } finally {
         if (isMounted) setIsLoadingUser(false);
       }
@@ -243,6 +294,11 @@ export function SiteHeader() {
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange(() => {
+        try {
+          sessionStorage.removeItem(USER_CACHE_KEY);
+        } catch {
+          // ignore
+        }
         void loadUser();
       });
       return () => {
@@ -349,14 +405,13 @@ export function SiteHeader() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <form action={signOutAction}>
-                    <DropdownMenuItem asChild>
-                      <button type="submit" className="flex w-full cursor-pointer items-center gap-2 text-destructive focus:text-destructive">
-                        <LogOut className="size-4" aria-hidden="true" />
-                        <span>{t("signOut")}</span>
-                      </button>
-                    </DropdownMenuItem>
-                  </form>
+                  <DropdownMenuItem
+                    onSelect={() => setLogoutConfirmOpen(true)}
+                    className="flex cursor-pointer items-center gap-2 text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="size-4" aria-hidden="true" />
+                    <span>{t("signOut")}</span>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -489,14 +544,19 @@ export function SiteHeader() {
                         </Button>
                       </SheetClose>
 
-                      <form action={signOutAction} className="flex-1">
-                        <SheetClose asChild>
-                          <Button type="submit" size="sm" variant="outline" className="h-10 w-full rounded-xl text-destructive hover:text-destructive">
-                            <LogOut className="size-4" aria-hidden="true" />
-                            <span>{t("signOut")}</span>
-                          </Button>
-                        </SheetClose>
-                      </form>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setMobileOpen(false);
+                          setLogoutConfirmOpen(true);
+                        }}
+                        className="h-10 flex-1 rounded-xl text-destructive hover:text-destructive"
+                      >
+                        <LogOut className="size-4" aria-hidden="true" />
+                        <span>{t("signOut")}</span>
+                      </Button>
                     </div>
                   </>
                 ) : (
@@ -525,6 +585,7 @@ export function SiteHeader() {
           </Sheet>
         </div>
       </div>
+      <LogoutConfirmDialog open={logoutConfirmOpen} onOpenChange={setLogoutConfirmOpen} />
     </header>
   );
 }

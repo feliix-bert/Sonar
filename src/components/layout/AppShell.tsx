@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -29,7 +29,7 @@ import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { AccessibilityToolbar } from "@/components/accessibility/AccessibilityToolbar";
 import { CommandMenu } from "@/components/accessibility/CommandMenu";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { signOutAction } from "@/features/authentication/actions";
+import { LogoutConfirmDialog } from "@/components/auth/LogoutConfirmDialog";
 import { initialsOf } from "@/lib/format";
 import type { AppRole } from "@/types/database";
 import { useTranslation } from "@/lib/i18n/use-translation";
@@ -163,6 +163,7 @@ export function SidebarAccountSection({
   userEmail?: string | null;
   roleLabel: string;
 }) {
+  const [logoutOpen, setLogoutOpen] = useState(false);
   const { t, isEn } = useTranslation();
   const displayName =
     userName?.trim() || userEmail?.split("@")[0] || (isEn ? "SONAR User" : "Pengguna SONAR");
@@ -177,27 +178,29 @@ export function SidebarAccountSection({
     : roleLabel;
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-3 rounded-xl bg-surface-subtle p-3">
-        <Avatar name={displayName} className="size-10 text-sm" />
-        <div className="min-w-0">
-          <p className="truncate font-ui text-sm font-semibold text-foreground">
-            {displayName}
-          </p>
-          <p className="text-xs text-muted-foreground">{displayRole}</p>
+    <>
+      <div className="space-y-2">
+        <div className="flex items-center gap-3 rounded-xl bg-surface-subtle p-3">
+          <Avatar name={displayName} className="size-10 text-sm" />
+          <div className="min-w-0">
+            <p className="truncate font-ui text-sm font-semibold text-foreground">
+              {displayName}
+            </p>
+            <p className="text-xs text-muted-foreground">{displayRole}</p>
+          </div>
         </div>
-      </div>
-      <form action={signOutAction}>
         <Button
-          type="submit"
+          type="button"
           variant="ghost"
+          onClick={() => setLogoutOpen(true)}
           className="h-11 w-full justify-start gap-3 rounded-xl px-3 font-ui text-sm font-medium text-muted-foreground hover:text-foreground"
         >
           <LogOut className="size-5" aria-hidden="true" />
           <span>{t("signOut")}</span>
         </Button>
-      </form>
-    </div>
+      </div>
+      <LogoutConfirmDialog open={logoutOpen} onOpenChange={setLogoutOpen} />
+    </>
   );
 }
 
@@ -210,6 +213,7 @@ export function HeaderUserMenu({
   userEmail?: string | null;
   roleLabel: string;
 }) {
+  const [logoutOpen, setLogoutOpen] = useState(false);
   const { t, isEn } = useTranslation();
   const displayName =
     userName?.trim() || userEmail?.split("@")[0] || (isEn ? "SONAR User" : "Pengguna SONAR");
@@ -224,50 +228,52 @@ export function HeaderUserMenu({
     : roleLabel;
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="h-11 gap-2 rounded-full px-1.5 sm:pr-3"
-        >
-          <Avatar name={displayName} className="size-8 text-xs" />
-          <span className="sr-only md:hidden">
-            {isEn ? `Account menu ${displayName}` : `Menu akun ${displayName}`}
-          </span>
-          <span className="hidden min-w-0 text-left leading-tight md:block">
-            <span className="block max-w-36 truncate text-sm font-semibold text-foreground">
-              {displayName}
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className="h-11 gap-2 rounded-full px-1.5 sm:pr-3"
+          >
+            <Avatar name={displayName} className="size-8 text-xs" />
+            <span className="sr-only md:hidden">
+              {isEn ? `Account menu ${displayName}` : `Menu akun ${displayName}`}
             </span>
-            <span className="block text-xs font-normal text-muted-foreground">{displayRole}</span>
-          </span>
-          <ChevronDown className="hidden size-4 text-muted-foreground sm:block" aria-hidden="true" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel className="space-y-0.5 font-normal">
-          <span className="block truncate text-sm font-semibold text-foreground">{displayName}</span>
-          {userEmail ? (
-            <span className="block truncate text-xs text-muted-foreground">{userEmail}</span>
-          ) : null}
-          <span className="block text-xs text-muted-foreground">{displayRole}</span>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/settings" className="min-h-10 cursor-pointer">
-            <Settings className="size-4" aria-hidden="true" />
-            <span>{isEn ? "Reading preferences" : "Pengaturan membaca"}</span>
-          </Link>
-        </DropdownMenuItem>
-        <form action={signOutAction}>
+            <span className="hidden min-w-0 text-left leading-tight md:block">
+              <span className="block max-w-36 truncate text-sm font-semibold text-foreground">
+                {displayName}
+              </span>
+              <span className="block text-xs font-normal text-muted-foreground">{displayRole}</span>
+            </span>
+            <ChevronDown className="hidden size-4 text-muted-foreground sm:block" aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuLabel className="space-y-0.5 font-normal">
+            <span className="block truncate text-sm font-semibold text-foreground">{displayName}</span>
+            {userEmail ? (
+              <span className="block truncate text-xs text-muted-foreground">{userEmail}</span>
+            ) : null}
+            <span className="block text-xs text-muted-foreground">{displayRole}</span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <button type="submit" className="min-h-10 w-full cursor-pointer">
-              <LogOut className="size-4" aria-hidden="true" />
-              <span>{t("signOut")}</span>
-            </button>
+            <Link href="/settings" className="min-h-10 cursor-pointer">
+              <Settings className="size-4" aria-hidden="true" />
+              <span>{isEn ? "Reading preferences" : "Pengaturan membaca"}</span>
+            </Link>
           </DropdownMenuItem>
-        </form>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <DropdownMenuItem
+            onSelect={() => setLogoutOpen(true)}
+            className="min-h-10 w-full cursor-pointer text-destructive focus:text-destructive"
+          >
+            <LogOut className="size-4" aria-hidden="true" />
+            <span>{t("signOut")}</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <LogoutConfirmDialog open={logoutOpen} onOpenChange={setLogoutOpen} />
+    </>
   );
 }
 
