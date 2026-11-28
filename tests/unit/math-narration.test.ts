@@ -302,14 +302,14 @@ describe("SONAR Deterministic Math Narration & MathML Engine", () => {
     expect(contourInt.narrationEn.toLowerCase()).toContain("contour integral");
   });
 
-  it("narrates ellipsis (\\dots, \\cdots, \\ldots) naturally as titik-titik without flagging warnings or chopping to dot s", () => {
+  it("narrates ellipsis (\\dots, \\cdots, \\ldots) naturally as sampai dengan without flagging warnings or chopping to dot s", () => {
     const hypergeo =
       "P(X = k) = \\frac{\\binom{K}{k}\\binom{N-K}{n-k}}{\\binom{N}{n}}, \\quad \\binom{n}{k_1, k_2, \\dots, k_m} = \\frac{n!}{k_1! k_2! \\cdots k_m!}";
     const res = narrateLatexEquation(hypergeo);
     expect(res.supported).toBe(true);
     expect(res.unsupportedConstructs).not.toContain("\\dots");
     expect(res.unsupportedConstructs).not.toContain("\\cdots");
-    expect(res.narrationId.toLowerCase()).toContain("titik-titik");
+    expect(res.narrationId.toLowerCase()).toContain("sampai dengan");
     expect(res.narrationId.toLowerCase()).not.toContain("dot s");
     expect(res.narrationId.toLowerCase()).not.toContain("peringatan:");
   });
