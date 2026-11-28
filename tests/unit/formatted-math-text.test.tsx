@@ -113,4 +113,21 @@ describe("FormattedMathText & KaTeX rendering", () => {
     expect(html?.textContent).not.toContain("\\le");
     expect(html?.textContent).not.toContain("\\varepsilon");
   });
+
+  it("renders markdown tables with embedded math formulas cleanly", () => {
+    const tableText =
+      "| Simbol | Makna |\n| --- | --- |\n| $f'(x)$ | Turunan pertama |\n| $\\int f(x) dx$ | Integral tak tentu |";
+    const { container } = render(<FormattedMathText text={tableText} as="div" />);
+    expect(container.querySelector("table")).toBeInTheDocument();
+    expect(container.querySelectorAll("th").length).toBe(2);
+    expect(container.querySelectorAll("td").length).toBe(4);
+    expect(container.querySelectorAll(".katex").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("renders code fences with latex as interactive MathEquationView", () => {
+    const codeText = "```latex\n\\int_{0}^{\\pi} \\sin(x) dx = 2\n```";
+    const { container } = render(<FormattedMathText text={codeText} as="div" />);
+    expect(container.querySelector(".katex-display")).toBeInTheDocument();
+    expect(screen.getByText("Lihat kode LaTeX asli")).toBeInTheDocument();
+  });
 });

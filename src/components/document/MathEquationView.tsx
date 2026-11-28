@@ -11,6 +11,7 @@ export interface MathEquationViewProps {
   mathMl?: string;
   spokenText?: string;
   className?: string;
+  compact?: boolean;
 }
 
 /**
@@ -24,6 +25,7 @@ export function MathEquationView({
   mathMl,
   spokenText,
   className,
+  compact = false,
 }: MathEquationViewProps) {
   const [showCode, setShowCode] = useState(false);
 
@@ -77,23 +79,32 @@ export function MathEquationView({
   }, [spokenText, formula]);
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn(compact ? "space-y-2" : "space-y-3", className)}>
       <div
         tabIndex={0}
         role="region"
         aria-label={
           effectiveSpokenText ? `Rumus: ${effectiveSpokenText}` : `Rumus matematika: ${formula}`
         }
-        className="overflow-x-auto rounded-2xl border border-primary/25 bg-card p-5 shadow-xs transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary"
+        className={cn(
+          "overflow-x-auto rounded-2xl border border-primary/25 bg-card shadow-xs transition-colors hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary",
+          compact ? "p-3 sm:p-4" : "p-5"
+        )}
       >
         {katexHtml ? (
           <div
-            className="flex min-h-12 items-center justify-center text-center text-lg text-foreground font-sans"
+            className={cn(
+              "flex items-center justify-center text-center text-foreground font-sans",
+              compact ? "min-h-9 text-base" : "min-h-12 text-lg"
+            )}
             dangerouslySetInnerHTML={{ __html: katexHtml }}
           />
         ) : mathMl ? (
           <div
-            className="flex min-h-12 items-center justify-center text-center text-lg text-foreground font-sans"
+            className={cn(
+              "flex items-center justify-center text-center text-foreground font-sans",
+              compact ? "min-h-9 text-base" : "min-h-12 text-lg"
+            )}
             dangerouslySetInnerHTML={{ __html: mathMl }}
           />
         ) : (

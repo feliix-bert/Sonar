@@ -1,6 +1,7 @@
 import React from "react";
 import katex from "katex";
 import { cn } from "cn";
+import { MathEquationView } from "@/components/document/MathEquationView";
 
 /**
  * Automatically detects raw LaTeX and math constructs (sets like \{...\}, subscripts like E_7,
@@ -35,6 +36,8 @@ export function autoWrapUnescapedMath(text: string): string {
   let workingText = text
     .replace(/(?<![a-zA-Z0-9\\])o\{([a-zA-Z0-9]+)\}/g, "\\bar{$1}")
     .replace(/\\\\+([a-zA-Z]+)/g, "\\$1")
+    .replace(/(?:```[\s\S]*?```|`[^`\n]+`)/g, (m) => protect(m))
+    .replace(/^[ \t]*\|.+?\|[ \t]*$/gm, (m) => protect(m))
     .replace(mathRegex, (m) => protect(m));
 
   // 1. Set notation: e.g. \{(x, y), L - 3 \le x \le L, 0 \le y \le W\} or \{(x, y) \in S, ...\}
@@ -123,6 +126,17 @@ export function autoWrapUnescapedMath(text: string): string {
   workingText = workingText.replace(
     /(?<![a-zA-Z0-9_\\])(?:(?:(?:(?:-?\d+(?:\.\d+)?|\b[a-zA-Z])\s*)?\\(?:bar|vec|hat|tilde|mathbf)\{[a-zA-Z0-9]+\}|[a-zA-Z0-9_]+)\s*[\+\-\*\/]\s*)*(?:(?:(?:-?\d+(?:\.\d+)?|\b[a-zA-Z])\s*)?\\(?:bar|vec|hat|tilde|mathbf)\{[a-zA-Z0-9]+\}|[a-zA-Z0-9_]+)\s*=\s*\([^\(\)\n]+\)/g,
     (m) => protect(`\\(${m}\\)`)
+  );
+
+  // 4b. Common equations with equality and LaTeX commands: e.g. f(x) = \frac{1}{2}x, y' = \lim_{h \to 0} ..., E = mc^2
+  workingText = workingText.replace(
+    /(?<![a-zA-Z0-9_\\])(?:[a-zA-Z](?:\([a-zA-Z0-9,\s]+\)|'|_[0-9a-zA-Z]+)?\s*=\s*(?:[^\n$]+?\\[a-zA-Z]+[^\n$]*?))(?=[.,;\s]|$)/g,
+    (m) => {
+      if (!m.includes("___MATH_PLACEHOLDER_") && !m.includes("http")) {
+        return protect(`\\(${m.trim()}\\)`);
+      }
+      return m;
+    }
   );
 
   // 5. Vector expressions with arithmetic operators: e.g. \bar{a} + \bar{b}, \bar{u} - \bar{v}, \bar{a} \times \bar{b}
@@ -214,9 +228,9 @@ export function normalizeMarkdownText(raw: string): string {
   // Fix common OCR artifact where vector arrow/bar \vec{a} or \bar{a} was read as o{a} or o{b}
   s = s.replace(/(?<![a-zA-Z0-9\\])o\{([a-zA-Z0-9]+)\}/g, "\\bar{$1}");
 
-  // Separate glued horizontal rules: e.g. "(*screen reader*). --- ### Pertanyaan"
+  // Separate glued horizontal rules: e.g. "(*screen reader*). --- ### Pertanyaan" (excluding table borders | --- |)
   s = s.replace(
-    /([^-\n\s])\s*---\s*([^-\n\s])/g,
+    /([^-\n\s|])\s*---\s*([^-\n\s|])/g,
     (_m, p1, p2) => `${p1}\n\n---\n\n${p2}`
   );
 
@@ -573,9 +587,134 @@ export function renderMarkdownBlocks(text: string): React.ReactNode {
       }
 
       const fullMathBlock = mathLines.join("\n");
+      let formula = fullMathBlock.trim();
+      if (
+        (formula.startsWith("\\[") && formula.endsWith("\\]")) ||
+        (formula.startsWith("\\(") && formula.endsWith("\\)"))
+      ) {
+        formula = formula.slice(2, -2).trim();
+      } else if (formula.startsWith("$$") && formula.endsWith("$$")) {
+        formula = formula.slice(2, -2).trim();
+      }
+
       elements.push(
-        <div key={`b-math-${keyIdx++}`} className="my-2.5">
-          {renderInlineMathAndMarkdown(fullMathBlock, `m-${keyIdx++}`)}
+        <MathEquationView
+          key={`b-math-${keyIdx++}`}
+          latex={formula}
+          contentText={formula}
+          compact
+          className="my-3"
+        />
+      );
+      continue;
+    }
+
+    // 4b. Code blocks: ```latex, ```math, or general ```
+    if (trimmed.startsWith("```")) {
+      const lang = trimmed.slice(3).trim().toLowerCase();
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith("```")) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      if (i < lines.length && lines[i].trim().startsWith("```")) {
+        i++;
+      }
+      const codeContent = codeLines.join("\n").trim();
+      if (lang === "latex" || lang === "math" || lang === "tex") {
+        elements.push(
+          <MathEquationView
+            key={`b-code-math-${keyIdx++}`}
+            latex={codeContent}
+            contentText={codeContent}
+            compact
+            className="my-3"
+          />
+        );
+      } else {
+        elements.push(
+          <pre
+            key={`b-code-${keyIdx++}`}
+            className="my-2.5 overflow-x-auto rounded-xl border border-border bg-muted/60 p-3 font-mono text-xs text-foreground"
+          >
+            <code>{codeContent}</code>
+          </pre>
+        );
+      }
+      continue;
+    }
+
+    // 4c. Markdown Table: lines starting and ending with |
+    if (
+      trimmed.startsWith("|") &&
+      trimmed.endsWith("|") &&
+      i + 1 < lines.length &&
+      /^\s*\|?\s*:?-+:?\s*\|/.test(lines[i + 1].trim())
+    ) {
+      const headerLine = trimmed;
+      const rawHeaders = headerLine
+        .split("|")
+        .map((c) => c.trim())
+        .filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+
+      i += 2; // skip header line and divider line
+      const tableRows: string[][] = [];
+      while (
+        i < lines.length &&
+        lines[i].trim().startsWith("|") &&
+        lines[i].trim().endsWith("|")
+      ) {
+        const rowCells = lines[i]
+          .split("|")
+          .map((c) => c.trim())
+          .filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+        if (rowCells.length > 0) {
+          tableRows.push(rowCells);
+        }
+        i++;
+      }
+
+      elements.push(
+        <div
+          key={`b-table-${keyIdx++}`}
+          tabIndex={0}
+          role="region"
+          aria-label="Tabel data"
+          className="my-3 overflow-x-auto rounded-2xl border border-border bg-card shadow-xs"
+        >
+          <table className="w-full border-collapse text-left text-sm font-ui">
+            <thead>
+              <tr className="border-b border-border bg-surface-subtle">
+                {rawHeaders.map((h, hIdx) => (
+                  <th
+                    key={`th-${keyIdx}-${hIdx}`}
+                    scope="col"
+                    className="p-2.5 font-semibold text-foreground text-xs"
+                  >
+                    {renderInlineMathAndMarkdown(h, `th-${keyIdx}-${hIdx}`)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((row, rIdx) => (
+                <tr
+                  key={`tr-${keyIdx}-${rIdx}`}
+                  className="border-b border-border/50 transition-colors hover:bg-muted/30 last:border-0"
+                >
+                  {row.map((cell, cIdx) => (
+                    <td
+                      key={`td-${keyIdx}-${rIdx}-${cIdx}`}
+                      className="p-2.5 text-foreground text-xs align-top"
+                    >
+                      {renderInlineMathAndMarkdown(cell, `td-${keyIdx}-${rIdx}-${cIdx}`)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       );
       continue;

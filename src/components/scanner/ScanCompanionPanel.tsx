@@ -426,7 +426,7 @@ export function ScanCompanionPanel({
                   <div key={m.id} className={cn("space-y-2", isUser ? "flex justify-end" : "")}>
                     {isUser ? (
                       <div className="max-w-[85%] rounded-2xl bg-tint-blue px-4 py-2.5 text-sm font-medium text-brand-ink">
-                        {text}
+                        <FormattedMathText text={text} as="div" className="text-sm font-medium text-brand-ink" />
                       </div>
                     ) : (
                       <div className="space-y-2.5 rounded-2xl border border-border bg-card p-4 shadow-xs">

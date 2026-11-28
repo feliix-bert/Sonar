@@ -762,15 +762,17 @@ export function AccessibleReaderStudio({
               >
                 {isUser ? (
                   <div className="max-w-[85%] rounded-2xl bg-tint-blue px-4 py-2.5 text-sm font-medium text-brand-ink">
-                    {text}
+                    <FormattedMathText text={text} as="div" className="text-sm font-medium text-brand-ink" />
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <p className="whitespace-pre-line leading-relaxed text-foreground">
-                      {text}
-                    </p>
+                  <div className="space-y-2.5 rounded-2xl border border-border bg-card p-4 shadow-xs">
+                    <FormattedMathText
+                      text={text}
+                      as="div"
+                      className="leading-relaxed text-foreground text-sm"
+                    />
                     {citations.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5 font-ui">
+                      <div className="flex flex-wrap gap-1.5 font-ui pt-1">
                         {citations.map((cit) => (
                           <button
                             key={`${m.id}-${cit.blockId}`}
@@ -783,14 +785,14 @@ export function AccessibleReaderStudio({
                         ))}
                       </div>
                     ) : null}
-                    <div className="flex items-center gap-1 font-ui">
+                    <div className="flex items-center gap-1.5 pt-2 border-t border-border/50 font-ui text-xs">
                       <Button
                         type="button"
                         size="sm"
                         variant="ghost"
                         aria-label="Salin jawaban"
                         onClick={() => void handleCopyText(m.id, text)}
-                        className="h-8 rounded-full px-2 text-xs text-muted-foreground"
+                        className="h-7 rounded-full px-2 text-xs text-muted-foreground hover:text-foreground"
                       >
                         {copiedId === m.id ? (
                           <Check className="size-3.5 text-primary" aria-hidden="true" />
@@ -805,7 +807,7 @@ export function AccessibleReaderStudio({
                         variant="ghost"
                         aria-label="Dengarkan jawaban"
                         onClick={() => speakSingleText(text)}
-                        className="h-8 rounded-full px-2 text-xs text-muted-foreground"
+                        className="h-7 rounded-full px-2 text-xs text-muted-foreground hover:text-foreground"
                       >
                         <Volume2 className="size-3.5" aria-hidden="true" />
                         <span>Dengarkan</span>

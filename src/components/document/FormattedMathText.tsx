@@ -43,6 +43,8 @@ export function FormattedMathText({
           text.includes("---") ||
           text.includes("$$") ||
           text.includes("\\[") ||
+          text.includes("```") ||
+          text.includes("|") ||
           text.includes("\\begin{")))
     );
   }, [Component, text]);
