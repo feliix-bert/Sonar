@@ -117,10 +117,10 @@ export function MathEquationView({
       </div>
 
       {effectiveSpokenText && (
-        <p className="flex items-center gap-1.5 text-xs text-muted-foreground font-ui">
+        <div className="flex flex-col gap-1 text-xs font-ui">
           <span className="font-semibold text-foreground">Narasi suara:</span>
-          <span>{effectiveSpokenText}</span>
-        </p>
+          <p className="leading-relaxed text-muted-foreground">{effectiveSpokenText}</p>
+        </div>
       )}
 
       <div className="font-ui">
