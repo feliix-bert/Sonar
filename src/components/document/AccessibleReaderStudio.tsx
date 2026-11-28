@@ -49,7 +49,6 @@ import { useAccessibilityStore } from "@/stores/accessibility-store";
 import { useAudioReader } from "@/features/audio/use-audio-reader";
 import { useLiveAnnouncer } from "@/components/accessibility/LiveAnnouncer";
 import { sanitizeDocumentHtml } from "@/lib/accessibility/sanitize";
-import { formatVersion } from "@/lib/format";
 import { parseTableData, narrateTable } from "@/lib/accessibility/table-narration";
 import {
   FormattedMathText,
@@ -908,9 +907,6 @@ export function AccessibleReaderStudio({
 
           <div className="flex flex-wrap items-center gap-2">
             <ReviewStatusChip status={document.review_status} />
-            <span className="rounded-full bg-surface-subtle px-2.5 py-1 text-xs font-semibold text-foreground">
-              {isEn ? "Version" : "Versi"} {formatVersion(document.current_version_id)}
-            </span>
             <span className="text-xs text-muted-foreground">
               {isEn ? `${document.page_count} pages` : `${document.page_count} halaman`}
             </span>

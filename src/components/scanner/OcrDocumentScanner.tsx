@@ -954,9 +954,6 @@ export function OcrDocumentScanner({
                       {scanResult.documentTitle}
                     </h2>
                   </div>
-                  <p className="text-sm text-muted-foreground font-ui">
-                    Tingkat keyakinan ekstraksi: {Math.round(scanResult.confidence)}%
-                  </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 font-ui">

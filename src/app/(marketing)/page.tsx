@@ -198,16 +198,6 @@ export default function LandingPage() {
             <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-10">
               {/* Left Column: Expressive Display Headline, CTAs & Stats */}
               <div className="min-w-0 space-y-7 lg:col-span-6">
-                <div
-                  data-hero-reveal
-                  className="inline-flex items-center gap-2.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-semibold text-foreground shadow-xs font-ui"
-                >
-                  <span className="inline-flex size-5 items-center justify-center rounded-md bg-brand-gold text-brand-ink">
-                    <Star className="size-3.5 fill-current" aria-hidden="true" />
-                  </span>
-                  <span>4.9 / 5.0 oleh Mahasiswa Tunanetra &amp; Volunteer</span>
-                </div>
-
                 <h1
                   id="hero-heading"
                   data-hero-reveal
