@@ -392,18 +392,16 @@ export function AccessibleReaderStudio({
   };
 
   const togglePanel = (panel: "outline" | "ai") => {
-    setActivePanel((prev) => {
-      const next = prev === panel ? null : panel;
-      announce(
-        next === "outline"
-          ? "Panel daftar isi dibuka."
-          : next === "ai"
-            ? "Panel Tanya AI dibuka."
-            : "Panel samping ditutup.",
-        "polite"
-      );
-      return next;
-    });
+    const next = activePanel === panel ? null : panel;
+    setActivePanel(next);
+    announce(
+      next === "outline"
+        ? "Panel daftar isi dibuka."
+        : next === "ai"
+          ? "Panel Tanya AI dibuka."
+          : "Panel samping ditutup.",
+      "polite"
+    );
   };
 
   const canUseRemoteAi = aiEnabled;
