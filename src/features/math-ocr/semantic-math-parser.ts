@@ -177,14 +177,23 @@ export function translateSimpleTokens(
     )
     .replace(/\\(?:quad|qquad|hspace|vspace)\*?(?:\{[^}]*\})?/g, " ");
 
-  // Replace functions & operators from rules registry
-  for (const [macro, labels] of Object.entries(FUNCTION_RULES)) {
+  // Replace functions & operators from rules registry (longest keys first to prevent partial prefix collisions like \cdots -> \cdot + s)
+  const sortedFunctions = Object.entries(FUNCTION_RULES).sort(
+    (a, b) => b[0].length - a[0].length
+  );
+  for (const [macro, labels] of sortedFunctions) {
     out = out.replaceAll(macro, ` ${labels[lang]} `);
   }
-  for (const [macro, labels] of Object.entries(GREEK_RULES)) {
+  const sortedGreek = Object.entries(GREEK_RULES).sort(
+    (a, b) => b[0].length - a[0].length
+  );
+  for (const [macro, labels] of sortedGreek) {
     out = out.replaceAll(macro, ` ${labels[lang]} `);
   }
-  for (const [macro, labels] of Object.entries(OPERATOR_RULES)) {
+  const sortedOperators = Object.entries(OPERATOR_RULES).sort(
+    (a, b) => b[0].length - a[0].length
+  );
+  for (const [macro, labels] of sortedOperators) {
     out = out.replaceAll(macro, ` ${labels[lang]} `);
   }
 
