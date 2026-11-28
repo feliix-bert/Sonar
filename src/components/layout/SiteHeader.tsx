@@ -1,15 +1,20 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowRight,
+  BookOpen,
   BookOpenCheck,
   ChevronDown,
   CircleHelp,
+  ClipboardCheck,
   Info,
+  LayoutDashboard,
+  LogOut,
   Menu,
+  Settings,
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "cn";
@@ -18,6 +23,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -34,6 +41,9 @@ import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { AccessibilityToolbar } from "@/components/accessibility/AccessibilityToolbar";
 import { CommandMenu } from "@/components/accessibility/CommandMenu";
 import { useTranslation } from "@/lib/i18n/use-translation";
+import { initialsOf } from "@/lib/format";
+import { signOutAction } from "@/features/authentication/actions";
+import { createClient } from "@/lib/supabase/client";
 
 interface NavLink {
   label: string;
@@ -160,9 +170,91 @@ function DesktopNav() {
   return <DesktopNavView pathname={pathname} />;
 }
 
+interface HeaderUser {
+  id: string;
+  name: string | null;
+  email: string | null;
+  roles: string[];
+  roleLabel: string;
+  dashboardHref: string;
+  avatarUrl: string | null;
+}
+
+function NavAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
+  const [imageError, setImageError] = useState(false);
+
+  if (avatarUrl && !imageError) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={avatarUrl}
+        alt=""
+        aria-hidden="true"
+        className="size-8 rounded-full object-cover ring-1 ring-border"
+        onError={() => setImageError(true)}
+      />
+    );
+  }
+
+  return (
+    <span
+      className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary ring-1 ring-border"
+      aria-hidden="true"
+    >
+      {initialsOf(name)}
+    </span>
+  );
+}
+
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<HeaderUser | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const { t, isEn } = useTranslation();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadUser() {
+      try {
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!res.ok) {
+          if (isMounted) setUser(null);
+          return;
+        }
+        const data = await res.json();
+        if (isMounted) setUser(data.user ?? null);
+      } catch {
+        if (isMounted) setUser(null);
+      } finally {
+        if (isMounted) setIsLoadingUser(false);
+      }
+    }
+
+    void loadUser();
+
+    try {
+      const supabase = createClient();
+      if (!supabase) {
+        return () => {
+          isMounted = false;
+        };
+      }
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(() => {
+        void loadUser();
+      });
+      return () => {
+        isMounted = false;
+        subscription.unsubscribe();
+      };
+    } catch {
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 px-3 pt-3 sm:px-6 sm:pt-4">
@@ -191,24 +283,105 @@ export function SiteHeader() {
           <AccessibilityToolbar compact />
           <ThemeToggle />
 
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="hidden h-10 px-3 font-ui font-medium text-foreground md:inline-flex"
-          >
-            <Link href="/login">{t("signIn")}</Link>
-          </Button>
-          <Button
-            size="sm"
-            asChild
-            className="hidden h-10 rounded-xl bg-brand-ink px-4 font-ui font-semibold text-brand-paper hover:bg-brand-teal dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90 md:inline-flex"
-          >
-            <Link href="/register">
-              <span>{isEn ? "Get Started" : "Mulai Gratis"}</span>
-              <ArrowRight className="size-4" aria-hidden="true" />
-            </Link>
-          </Button>
+          {!isLoadingUser && user ? (
+            <div className="hidden items-center gap-2 md:flex">
+              <Button
+                size="sm"
+                asChild
+                className="h-10 rounded-xl bg-brand-ink px-3.5 font-ui font-semibold text-brand-paper hover:bg-brand-teal dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
+              >
+                <Link href={user.dashboardHref} className="inline-flex items-center gap-1.5">
+                  <LayoutDashboard className="size-4" aria-hidden="true" />
+                  <span>{user.roles.includes("admin") ? "Dashboard Admin" : isEn ? "Dashboard" : "Buka Dashboard"}</span>
+                </Link>
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 rounded-full p-1 text-left outline-none ring-offset-background transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+                    aria-label={isEn ? "Open user profile menu" : "Buka menu profil pengguna"}
+                  >
+                    <NavAvatar name={user.name ?? user.email ?? "User"} avatarUrl={user.avatarUrl} />
+                    <span className="sr-only">{user.name ?? user.email ?? "Profil Pengguna"}</span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 font-ui">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-semibold leading-none text-foreground">{user.name || (isEn ? "User" : "Pengguna")}</p>
+                      {user.email ? (
+                        <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                      ) : null}
+                      <div className="pt-1">
+                        <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                          {user.roleLabel}
+                        </span>
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href={user.dashboardHref} className="flex cursor-pointer items-center gap-2">
+                      <LayoutDashboard className="size-4" aria-hidden="true" />
+                      <span>Dashboard</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  {user.roles.includes("admin") || user.roles.includes("volunteer") ? (
+                    <DropdownMenuItem asChild>
+                      <Link href="/volunteer" className="flex cursor-pointer items-center gap-2">
+                        <ClipboardCheck className="size-4" aria-hidden="true" />
+                        <span>Antrean Review</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem asChild>
+                    <Link href="/courses" className="flex cursor-pointer items-center gap-2">
+                      <BookOpen className="size-4" aria-hidden="true" />
+                      <span>{isEn ? "Courses" : "Mata Kuliah"}</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings" className="flex cursor-pointer items-center gap-2">
+                      <Settings className="size-4" aria-hidden="true" />
+                      <span>{isEn ? "Reading Settings" : "Pengaturan Membaca"}</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <form action={signOutAction}>
+                    <DropdownMenuItem asChild>
+                      <button type="submit" className="flex w-full cursor-pointer items-center gap-2 text-destructive focus:text-destructive">
+                        <LogOut className="size-4" aria-hidden="true" />
+                        <span>{t("signOut")}</span>
+                      </button>
+                    </DropdownMenuItem>
+                  </form>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="hidden h-10 px-3 font-ui font-medium text-foreground md:inline-flex"
+              >
+                <Link href="/login">{t("signIn")}</Link>
+              </Button>
+              <Button
+                size="sm"
+                asChild
+                className="hidden h-10 rounded-xl bg-brand-ink px-4 font-ui font-semibold text-brand-paper hover:bg-brand-teal dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90 md:inline-flex"
+              >
+                <Link href="/register">
+                  <span>{isEn ? "Get Started" : "Mulai Gratis"}</span>
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            </>
+          )}
 
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -279,24 +452,74 @@ export function SiteHeader() {
                 </ul>
               </nav>
 
-              <div className="space-y-2 border-t border-border p-4 font-ui">
-                <SheetClose asChild>
-                  <Button
-                    asChild
-                    size="lg"
-                    className="h-12 w-full rounded-xl bg-brand-ink font-semibold text-brand-paper hover:bg-brand-teal dark:bg-primary dark:text-primary-foreground"
-                  >
-                    <Link href="/register">
-                      <BookOpenCheck className="size-4" aria-hidden="true" />
-                      <span>{isEn ? "Get Started" : "Mulai Gratis"}</span>
-                    </Link>
-                  </Button>
-                </SheetClose>
-                <SheetClose asChild>
-                  <Button asChild size="lg" variant="outline" className="h-12 w-full rounded-xl font-semibold">
-                    <Link href="/login">{t("signIn")}</Link>
-                  </Button>
-                </SheetClose>
+              <div className="space-y-3 border-t border-border p-4 font-ui">
+                {user ? (
+                  <>
+                    <div className="flex items-center gap-3 rounded-xl bg-muted/60 p-3">
+                      <NavAvatar name={user.name ?? user.email ?? "User"} avatarUrl={user.avatarUrl} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-foreground">{user.name || "Pengguna"}</p>
+                        <p className="truncate text-xs text-muted-foreground">{user.email || user.roleLabel}</p>
+                        <span className="mt-1 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                          {user.roleLabel}
+                        </span>
+                      </div>
+                    </div>
+
+                    <SheetClose asChild>
+                      <Button
+                        asChild
+                        size="lg"
+                        className="h-11 w-full rounded-xl bg-brand-ink font-semibold text-brand-paper hover:bg-brand-teal dark:bg-primary dark:text-primary-foreground"
+                      >
+                        <Link href={user.dashboardHref} className="inline-flex items-center justify-center gap-2">
+                          <LayoutDashboard className="size-4" aria-hidden="true" />
+                          <span>{user.roles.includes("admin") ? "Dashboard Admin" : isEn ? "Dashboard" : "Buka Dashboard"}</span>
+                        </Link>
+                      </Button>
+                    </SheetClose>
+
+                    <div className="flex gap-2">
+                      <SheetClose asChild>
+                        <Button asChild size="sm" variant="outline" className="h-10 flex-1 rounded-xl">
+                          <Link href="/settings" className="inline-flex items-center justify-center gap-1.5">
+                            <Settings className="size-4" aria-hidden="true" />
+                            <span>Pengaturan</span>
+                          </Link>
+                        </Button>
+                      </SheetClose>
+
+                      <form action={signOutAction} className="flex-1">
+                        <SheetClose asChild>
+                          <Button type="submit" size="sm" variant="outline" className="h-10 w-full rounded-xl text-destructive hover:text-destructive">
+                            <LogOut className="size-4" aria-hidden="true" />
+                            <span>{t("signOut")}</span>
+                          </Button>
+                        </SheetClose>
+                      </form>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <SheetClose asChild>
+                      <Button
+                        asChild
+                        size="lg"
+                        className="h-12 w-full rounded-xl bg-brand-ink font-semibold text-brand-paper hover:bg-brand-teal dark:bg-primary dark:text-primary-foreground"
+                      >
+                        <Link href="/register">
+                          <BookOpenCheck className="size-4" aria-hidden="true" />
+                          <span>{isEn ? "Get Started" : "Mulai Gratis"}</span>
+                        </Link>
+                      </Button>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Button asChild size="lg" variant="outline" className="h-12 w-full rounded-xl font-semibold">
+                        <Link href="/login">{t("signIn")}</Link>
+                      </Button>
+                    </SheetClose>
+                  </>
+                )}
               </div>
             </SheetContent>
           </Sheet>
