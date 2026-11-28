@@ -41,6 +41,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ReviewStatusChip } from "@/components/app/ReviewStatusChip";
 import { EmptyState } from "@/components/app/EmptyState";
 import { describeHttpFailure, readJsonSafely } from "@/lib/http/safe-json";
@@ -1339,45 +1346,55 @@ export function AccessibleReaderStudio({
             </div>
 
             <div className="flex items-center gap-3 text-xs">
-              <label className="flex items-center gap-1.5 text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-muted-foreground font-ui">
                 <span>{t("speed")}</span>
-                <select
-                  aria-label={isEn ? "Speech speed" : "Kecepatan suara"}
-                  value={narrationSpeed}
-                  onChange={(e) => setNarrationSpeed(Number(e.target.value))}
-                  className="h-9 rounded-full border border-border bg-background px-2.5 text-xs font-semibold text-foreground"
+                <Select
+                  value={String(narrationSpeed)}
+                  onValueChange={(val) => setNarrationSpeed(Number(val))}
                 >
-                  <option value="0.75">0.75×</option>
-                  <option value="1">1.0×</option>
-                  <option value="1.25">1.25×</option>
-                  <option value="1.5">1.5×</option>
-                  <option value="2">2.0×</option>
-                </select>
-              </label>
+                  <SelectTrigger
+                    aria-label={isEn ? "Speech speed" : "Kecepatan suara"}
+                    className="h-9 min-w-[5.25rem] rounded-full border border-border bg-card px-3 text-xs font-semibold text-foreground shadow-xs transition-colors hover:border-primary/50"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="min-w-[5.25rem] rounded-2xl border border-border bg-popover shadow-md font-ui">
+                    <SelectItem value="0.75" className="rounded-lg text-xs cursor-pointer py-1.5 font-medium">0.75×</SelectItem>
+                    <SelectItem value="1" className="rounded-lg text-xs cursor-pointer py-1.5 font-medium">1.0×</SelectItem>
+                    <SelectItem value="1.25" className="rounded-lg text-xs cursor-pointer py-1.5 font-medium">1.25×</SelectItem>
+                    <SelectItem value="1.5" className="rounded-lg text-xs cursor-pointer py-1.5 font-medium">1.5×</SelectItem>
+                    <SelectItem value="2" className="rounded-lg text-xs cursor-pointer py-1.5 font-medium">2.0×</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-              <label className="flex items-center gap-1.5 text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-muted-foreground font-ui">
                 <span>{t("language")}</span>
                 <div className="relative inline-flex items-center">
-                  <select
-                    aria-label="Bahasa narasi dan terjemahan"
+                  <Select
                     disabled={isTranslatingDoc}
                     value={language}
-                    onChange={(e) =>
-                      handleLanguageChange(e.target.value === "id" ? "id" : "en")
-                    }
-                    className="h-9 rounded-full border border-border bg-background px-2.5 text-xs font-semibold text-foreground disabled:opacity-50"
+                    onValueChange={(val) => handleLanguageChange(val === "id" ? "id" : "en")}
                   >
-                    <option value="id">ID</option>
-                    <option value="en">EN</option>
-                  </select>
+                    <SelectTrigger
+                      aria-label="Bahasa narasi dan terjemahan"
+                      className="h-9 min-w-[4.5rem] rounded-full border border-border bg-card px-3 text-xs font-semibold text-foreground shadow-xs transition-colors hover:border-primary/50 disabled:opacity-50"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="min-w-[4.5rem] rounded-2xl border border-border bg-popover shadow-md font-ui">
+                      <SelectItem value="id" className="rounded-lg text-xs cursor-pointer py-1.5 font-medium">ID</SelectItem>
+                      <SelectItem value="en" className="rounded-lg text-xs cursor-pointer py-1.5 font-medium">EN</SelectItem>
+                    </SelectContent>
+                  </Select>
                   {isTranslatingDoc && (
                     <Loader2
-                      className="absolute right-7 size-3 animate-spin text-primary"
+                      className="absolute right-8 size-3 animate-spin text-primary pointer-events-none"
                       aria-hidden="true"
                     />
                   )}
                 </div>
-              </label>
+              </div>
             </div>
           </div>
         </div>
